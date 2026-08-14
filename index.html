@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TNEA Counseling & College Predictor</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --accent: #2563eb;
+            --bg: #f8fafc;
+            --chat-bg: #ffffff;
+            --bot-msg: #f1f5f9;
+            --user-msg: #1e3a8a;
+            --text-main: #0f172a;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background: var(--bg); 
+            height: 100dvh; 
+            width: 100vw;
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            overflow: hidden;
+        }
+
+        /* Fullscreen Container for ALL devices */
+        .chat-container { 
+            width: 100%; 
+            height: 100dvh; 
+            background: var(--chat-bg); 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+        }
+        
+        .chat-header { padding: 16px 20px; background: var(--primary); color: white; display: flex; align-items: center; gap: 12px; }
+        .bot-avatar { font-size: 24px; }
+        .bot-info h3 { font-size: 16px; font-weight: 600; }
+        .bot-info p { font-size: 13px; color: #93c5fd; }
+
+        .quick-prompts { display: flex; gap: 10px; padding: 12px 20px; background: #fff; overflow-x: auto; border-bottom: 1px solid #f1f5f9; white-space: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .quick-prompts::-webkit-scrollbar { display: none; }
+        .prompt-pill { background: #eff6ff; color: var(--accent); font-size: 14px; padding: 8px 16px; border-radius: 20px; cursor: pointer; border: 1px solid #bfdbfe; font-weight: 500; transition: background 0.2s;}
+        .prompt-pill:hover { background: #dbeafe; }
+
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }
+        
+        .message { max-width: 90%; padding: 14px 18px; border-radius: 12px; font-size: 15px; line-height: 1.6; word-wrap: break-word; }
+        .bot-message { background: var(--bot-msg); color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 2px; width: 100%; max-width: 95%;}
+        .user-message { background: var(--user-msg); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+
+        .message table { width: 100%; border-collapse: collapse; margin: 12px 0; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: block; overflow-x: auto; white-space: nowrap; }
+        .message th, .message td { border: 1px solid #e2e8f0; padding: 12px; text-align: left; font-size: 14px; }
+        .message th { background-color: #cbd5e1; font-weight: 700; color: #1e293b; }
+        .message td { color: #334155; }
+        .message tr:nth-child(even) { background-color: #f8fafc; }
+        .message p { margin-bottom: 8px; }
+        .message ul, .message ol { margin-left: 20px; margin-bottom: 8px; }
+        .message strong { color: #0f172a; font-weight: 700; }
+
+        .typing-indicator { display: none; align-self: flex-start; background: var(--bot-msg); padding: 12px 16px; border-radius: 12px; }
+        .typing-indicator span { display: inline-block; width: 6px; height: 6px; background: #94a3b8; border-radius: 50%; margin: 0 2px; animation: bounce 1.4s infinite ease-in-out both; }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+        .chat-input-container { padding: 16px 20px; padding-bottom: calc(16px + env(safe-area-inset-bottom)); border-top: 1px solid #e2e8f0; background: #fff; display: flex; gap: 10px; align-items: center; }
+        #chat-input { flex: 1; padding: 14px 20px; border: 1px solid #cbd5e1; border-radius: 24px; outline: none; font-size: 15px; }
+        #chat-input:focus { border-color: var(--accent); }
+        #send-btn { background: var(--accent); color: white; border: none; width: 48px; height: 48px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        #send-btn:hover { background: var(--primary); }
+
+        /* WIDESCREEN OPTIMIZATION (PCs, Laptops, iPads) */
+        @media (min-width: 800px) {
+            .chat-messages { padding: 24px 15%; }
+            .chat-input-container { padding: 20px 15%; }
+            .chat-header { padding: 20px 15%; }
+            .quick-prompts { padding: 16px 15%; justify-content: center; }
+            .message { max-width: 75%; font-size: 16px; }
+            .bot-message { max-width: 85%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="bot-avatar">🎓</div>
+            <div class="bot-info">
+                <h3>TNEA Counseling Predictor</h3>
+                <p>● Live Data Active</p>
+            </div>
+        </div>
+
+        <div class="quick-prompts">
+            <div class="prompt-pill" onclick="sendQuickPrompt('My rank is 14500, BC category. Recommend CSE colleges.')">Recommend CSE by Rank</div>
+            <div class="prompt-pill" onclick="sendQuickPrompt('My cutoff is 185. OC Category.')">Recommend by Cutoff</div>
+            <div class="prompt-pill" onclick="sendQuickPrompt('Explain Upward Movement')">Upward Movement</div>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+            <div class="message bot-message">
+                Vanakkam! 👋 I am your TNEA Counseling Assistant. <br><br>
+                Tell me your <strong>General Rank</strong> or <strong>Cutoff Mark</strong> along with your <strong>Category</strong> (OC, BC, BCM, MBC, SC, etc.) to get a structured college recommendation list!
+            </div>
+            
+            <div class="typing-indicator" id="typing-indicator">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+
+        <div class="chat-input-container">
+            <input type="text" id="chat-input" placeholder="Type rank, cutoff, or a question..." autocomplete="off" />
+            <button id="send-btn" onclick="handleSend()">➤</button>
+        </div>
+    </div>
+
+    <script>
+        const inputField = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('send-btn');
+        const chatMessages = document.getElementById('chat-messages');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        let history = [];
+
+        function scrollToBottom() { chatMessages.scrollTop = chatMessages.scrollHeight; }
+
+        function appendMessage(text, sender) {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
+            
+            if(sender === 'bot') {
+                msgDiv.innerHTML = marked.parse(text);
+            } else {
+                msgDiv.textContent = text;
+            }
+            
+            chatMessages.insertBefore(msgDiv, typingIndicator);
+            scrollToBottom();
+        }
+
+        function sendQuickPrompt(promptText) {
+            inputField.value = promptText;
+            handleSend();
+        }
+
+        async function handleSend() {
+            const text = inputField.value.trim();
+            if (!text) return;
+
+            inputField.value = '';
+            appendMessage(text, 'user');
+            history.push({ role: 'user', content: text });
+
+            typingIndicator.style.display = 'block';
+            scrollToBottom();
+            sendBtn.disabled = true;
+
+            try {
+                // Change this URL if deploying frontend and backend separately
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text, history: history })
+                });
+                const data = await res.json();
+                
+                typingIndicator.style.display = 'none';
+                sendBtn.disabled = false;
+
+                if (data.reply) {
+                    appendMessage(data.reply, 'bot');
+                    history.push({ role: 'assistant', content: data.reply });
+                } else {
+                    appendMessage("Unable to fetch response. Please try again.", 'bot');
+                }
+            } catch (err) {
+                typingIndicator.style.display = 'none';
+                sendBtn.disabled = false;
+                appendMessage("Network error. Please make sure the server is running.", 'bot');
+            }
+        }
+
+        inputField.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleSend();
+        });
+    </script>
+</body>
+</html>
