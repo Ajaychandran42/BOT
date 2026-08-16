@@ -12,37 +12,42 @@ app.use(express.static(path.join(__dirname)));
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// 1. Load the merged Cutoff & Rank Dataset synchronously
+// 1. Load Both Datasets into Memory
 let tneaData = [];
+let collegeDetails = [];
+
 try {
   tneaData = JSON.parse(fs.readFileSync(path.join(__dirname, 'tnea_data.json'), 'utf8'));
-  console.log(`Loaded ${tneaData.length} college branches from local database.`);
+  console.log(`✅ Loaded ${tneaData.length} cutoff records from tnea_data.json`);
+  
+  collegeDetails = JSON.parse(fs.readFileSync(path.join(__dirname, 'college_details.json'), 'utf8'));
+  console.log(`✅ Loaded ${collegeDetails.length} detailed college profiles from college_details.json`);
 } catch (err) {
-  console.error("Could not load tnea_data.json. Make sure the file is in the folder.", err);
+  console.error("❌ Error loading JSON databases. Check your filenames.", err);
 }
 
-// 2. Official TNEA System Prompt (Math rejection removed, handled by backend now)
+// 2. Official TNEA System Prompt
 const TNEA_SYSTEM_PROMPT = `
 You are the official Tamil Nadu Engineering Admissions (TNEA) 2026 Counseling Assistant & College Predictor.
 
---- 1. CONVERSATION & PREDICTION RULES ---
-- NORMAL CONVERSATION: If the user is asking a general question (e.g., rules, fees) or saying hello, answer naturally. DO NOT ask for their cutoff, rank, or category.
-- REGIONS & BRANCHES DEFAULT: If the user asks for college recommendations but does not specify a region or branch, ASSUME THEY WANT ALL REGIONS AND ALL BRANCHES. NEVER ask them to specify a region or branch. 
-- CORE REQUIREMENTS: If the user specifically asks you to predict colleges, you need their Cutoff/Rank AND Category. If either is missing, politely ask for the specific missing detail.
+--- 1. COLLEGE INFORMATION INQUIRIES ---
+If the user asks for details about a specific college (e.g., "Hostel fee for CEG", "Contact details for CIT", "Who is the principal of PSG?"), utilize the [COLLEGE DETAILS CONTEXT] injected below to provide precise answers regarding:
+- College TNEA Code
+- Principal Name & Official Contacts (Phone, Email, Website)
+- Autonomous & Minority Status
+- Hostel Facilities (Mess Bill, Room Rent, Caution Deposit)
+- Transport Facilities & Charges
+- Approved Intake & NBA Accreditation status
 
---- 2. STRICT OUT-OF-SCOPE GUARDRAIL ---
-You are strictly limited to discussing TNEA counseling, Tamil Nadu engineering colleges, and cutoffs. If a user asks about ANY other topic, politely refuse: "I specialize exclusively in TNEA Counseling. Please ask me a question regarding engineering cutoffs, ranks, or colleges!"
+--- 2. PREDICTION TABLE FORMATTING ---
+When recommending colleges based on cutoff/rank, output a clean Markdown table with exactly these columns:
+| College Name | Branch | Closing Rank / Cutoff | Chance of Admission |
+Classify chances into Safe, Target, and Ambitious.
 
---- 3. ANTI-HALLUCINATION & FORMATTING ---
-- NEVER guess or invent college cutoffs. Use ONLY the database results injected at the bottom of this prompt.
-- IF AND ONLY IF database results are provided below, output a clean Markdown table with exactly these columns: | College Name | Branch | Closing Rank / Cutoff | Chance of Admission |
-- IF NO database results are provided below, do NOT generate a table. Reply conversationally.
-
---- OFFICIAL TNEA 2026 INFORMATION & RULES ---
-1. ALLOCATION OF SEATS & INSTITUTIONS: Govt, Aided, Anna Univ, Central Govt, Self-Financing.
-2. MINIMUM ELIGIBILITY (PCM): General(OC): 45% | BC/BCM/MBC/SC/SCA/ST: 40%
-3. RESERVATION POLICY: OC: 31%, BC: 26.5%, BCM: 3.5%, MBC: 20%, SC: 15%, SCA: 3%, ST: 1%
-4. 7.5% Govt School Quota: Full fee waiver for students 6th-12th in TN State Govt schools.
+--- 3. GENERAL TNEA RULES ---
+- PCM Minimum Eligibility: General Category (OC) 45%, Reserved (BC/BCM/MBC/SC/SCA/ST) 40%.
+- Reservation: OC: 31%, BC: 26.5%, BCM: 3.5%, MBC: 20%, SC: 15%, SCA: 3%, ST: 1%.
+- 7.5% Government School Quota: Full fee waiver (Tuition, Hostel, Development).
 `;
 
 // 3. Keyword Detection Lists
@@ -72,7 +77,7 @@ function extractPreferences(text) {
   return { cities: detectedCities, branches: detectedBranches };
 }
 
-// 4. Recommendation Matchers
+// 4. Recommendation Matchers (Searches tnea_data.json)
 function getRecommendationsByRank(userRank, category = "OC", prefs) {
   const validCategory = category.toUpperCase();
   let matched = [];
@@ -121,12 +126,51 @@ function getRecommendationsByCutoff(userScore, category = "OC", prefs) {
   return matched.sort((a, b) => Math.abs(userScore - a.required_cutoff) - Math.abs(userScore - b.required_cutoff)).slice(0, 12);
 }
 
-// 5. Chat Route with Perfected Gatekeeper
+// 5. SMARTER College Details Locator
+function findCollegeDetails(query) {
+  const q = query.toLowerCase();
+  
+  // 1. Direct TNEA Code Match
+  const codeMatch = q.match(/\b\d{1,4}\b/);
+  const code = codeMatch ? parseInt(codeMatch[0], 10) : null;
+
+  // 2. Smart Keyword & Abbreviation Dictionary
+  const exactMatches = {
+    "ceg": 1, "act": 2, "mit": 4, "psg": 2006, "cit": 2007, 
+    "ssn": 1315, "svce": 1219, "srm": 1422, "saveetha": 1216,
+    "panimalar": 1210, "rajalakshmi": 1211, "kcg": 1311,
+    "jeppiaar": 1306, "st. joseph": 1317, "sairam": 1419,
+    "easwari": 1304, "rmk": 1113, "rmd": 1112, "velammal": 1120
+  };
+
+  for (const [key, val] of Object.entries(exactMatches)) {
+    if (q.includes(key)) {
+      const found = collegeDetails.find(c => parseInt(c.college_code, 10) === val);
+      if (found) return found;
+    }
+  }
+
+  // 3. Core Name Substring Match (Catches everything else)
+  for (const item of collegeDetails) {
+    const itemCode = parseInt(item.college_code, 10);
+    if (code === itemCode) return item;
+
+    // Isolate the core name (e.g., "Madha Engineering College" instead of the huge full string)
+    const coreName = item.college_name.toLowerCase().split(',')[0].split('(')[0].trim();
+    
+    if (coreName.length > 5 && q.includes(coreName)) {
+      return item;
+    }
+  }
+  return null;
+}
+
+// 6. Chat Route
 app.post('/api/chat', async (req, res) => {
   try {
     const { message, history } = req.body;
 
-    // --- JS HARD VALIDATION: Reject Out-Of-Bounds Cutoffs ---
+    // Reject Out-Of-Bounds Cutoffs
     const explicitCutoffCheck = message.match(/(?:cutoff|mark|score)\s*(?:is\s*)?(\d{1,3}(?:\.\d+)?)/i);
     if (explicitCutoffCheck) {
         const checkVal = parseFloat(explicitCutoffCheck[1]);
@@ -165,32 +209,35 @@ app.post('/api/chat', async (req, res) => {
     let predictionContext = "";
     const disclaimerText = "\n\n--- \n*Disclaimer: These predictions are estimates based on previous year data. Official TNEA counseling seat allotment rules apply.*";
 
+    // A. Inject College Profile if the user asks about a specific college
+    const collegeInfo = findCollegeDetails(message);
+    if (collegeInfo) {
+      predictionContext += `\n\n[COLLEGE DETAILS CONTEXT]:\n` + JSON.stringify(collegeInfo, null, 2) + `\nAnswer the user's specific query about this college (e.g., code, hostels, fees, principal) using the facts above.`;
+    }
+
     const hasNumber = (detectedRank !== null || detectedScore !== null);
     const hasCategory = detectedCategory !== null;
-    
     const isAskingForColleges = message.toLowerCase().match(/(recommend|suggest|predict|what college|which college|get into|list)/);
 
-    // --- GATEKEEPER LOGIC ---
+    // B. Gatekeeper Logic for College Predictions
     if (hasNumber && hasCategory) {
       if (detectedRank) {
         const recommendations = getRecommendationsByRank(detectedRank, detectedCategory, prefs);
-        predictionContext = recommendations.length > 0 
+        predictionContext += recommendations.length > 0 
           ? `\n\n[DATABASE RESULTS FOR RANK ${detectedRank}, CATEGORY ${detectedCategory}]:\n` + JSON.stringify(recommendations, null, 2) + `\n\nFormat these into the recommended college table. AFTER the table, print this verbatim: ${disclaimerText}`
           : `\n\n[NO EXACT MATCHES FOUND IN DATABASE] State that no exact college matches were found.`;
       } else if (detectedScore) {
         const recommendations = getRecommendationsByCutoff(detectedScore, detectedCategory, prefs);
-        predictionContext = recommendations.length > 0 
+        predictionContext += recommendations.length > 0 
           ? `\n\n[DATABASE RESULTS FOR CUTOFF ${detectedScore}, CATEGORY ${detectedCategory}]:\n` + JSON.stringify(recommendations, null, 2) + `\n\nFormat these into the recommended college table. AFTER the table, print this verbatim: ${disclaimerText}`
           : `\n\n[NO EXACT MATCHES FOUND IN DATABASE] State that no exact college matches were found.`;
       }
     } else if (isAskingForColleges && (!hasNumber || !hasCategory)) {
-      
-      // Determine exactly what is missing so the AI asks perfectly
       const missingItems = [];
       if (!hasNumber) missingItems.push("Cutoff Mark (or Rank)");
       if (!hasCategory) missingItems.push("Community Category (e.g., OC, BC, MBC)");
       
-      predictionContext = `\n\n[SYSTEM NOTIFICATION]: The user wants college predictions but is missing data.
+      predictionContext += `\n\n[SYSTEM NOTIFICATION]: The user wants college predictions but is missing data.
       CRITICAL INSTRUCTION: You MUST politely ask the user to provide their ${missingItems.join(" AND ")}. DO NOT ask for regions or branches. DO NOT generate any colleges.`;
     } 
 
