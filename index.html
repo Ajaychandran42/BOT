@@ -3,54 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TNEA Counseling & College Predictor</title>
+    <title>TNEA GPT | 2026 Admissions & Cutoff Compass</title>
     
-    <!-- External Libraries & Styles -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&family=Outfit:wght@500;600;700;800&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div class="chat-container">
-        <!-- Header -->
-        <div class="chat-header">
-            <div class="header-left">
-                <div class="bot-avatar">🎓</div>
-                <div class="bot-info">
-                    <h3>TNEA Counseling Predictor</h3>
-                    <p>● Data Source: DoTE (2025/2026)</p>
-                </div>
-            </div>
-            <button id="theme-toggle">🌙</button>
-        </div>
-
-        <!-- Quick Prompts -->
-        <div class="quick-prompts">
-            <div class="prompt-pill" onclick="sendQuickPrompt('My rank is 14500, BC category. Recommend CSE colleges in Chennai.')">Recommend CSE by Rank</div>
-            <div class="prompt-pill" onclick="sendQuickPrompt('My cutoff is 185. OC Category.')">Recommend by Cutoff</div>
-            <div class="prompt-pill" onclick="sendQuickPrompt('Explain Upward Movement')">Upward Movement</div>
-        </div>
-
-        <!-- Chat Output Area -->
-        <div class="chat-messages" id="chat-messages">
-            <div class="message bot-message">
-                HELLO! 👋 I am your TNEA Counseling Assistant. <br><br>
-                Tell me your <strong>General Rank</strong> or <strong>Cutoff Mark</strong> along with your <strong>Category</strong> (OC, BC, BCM, MBC, SC, etc.) to get a structured college recommendation list!
-            </div>
+    <div class="app-root theme-dark" id="appRoot">
+        <div class="app-container">
             
-            <div class="typing-indicator" id="typing-indicator">
-                <span></span><span></span><span></span>
-            </div>
-        </div>
+            <!-- FLUID MAC-STYLE SIDEBAR -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-top">
+                    <div class="sidebar-brand">
+                        <img src="logo.jpeg" alt="TNEA GPT Logo" class="sidebar-custom-logo">
+                        <div class="brand-info hide-on-collapse">
+                            <h2>TNEA GPT</h2>
+                            <span class="badge-2026">2026 Edition</span>
+                        </div>
+                        <button class="icon-btn close-sidebar-btn hide-on-collapse" id="closeSidebarBtn" title="Close Sidebar">
+                            <i data-lucide="chevron-left"></i>
+                        </button>
+                    </div>
 
-        <!-- User Input Area -->
-        <div class="chat-input-container">
-            <textarea id="chat-input" rows="1" placeholder="Type rank, cutoff, or a question..."></textarea>
-            <button id="send-btn" onclick="handleSend()">➤</button>
+                    <button class="action-btn new-chat-btn" id="newChatBtn" title="New Chat">
+                        <i data-lucide="plus-circle"></i>
+                        <span class="hide-on-collapse">New Chat</span>
+                    </button>
+
+                    <button class="nav-item calc-nav-btn" id="navCalcPageBtn" title="Cutoff Calculator">
+                        <div class="nav-icon-wrapper calc-accent">
+                            <i data-lucide="calculator"></i>
+                        </div>
+                        <div class="nav-item-text hide-on-collapse">
+                            <span class="title">Cutoff Calculator</span>
+                            <span class="sub">Calculate PCM to 200</span>
+                        </div>
+                    </button>
+
+                    <div class="sidebar-divider hide-on-collapse"></div>
+                    <span class="sidebar-section-label hide-on-collapse">Navigation</span>
+
+                    <button class="nav-item active" id="navChatBtn" title="Counseling Chat">
+                        <div class="nav-icon-wrapper">
+                            <i data-lucide="message-square"></i>
+                        </div>
+                        <span class="hide-on-collapse">Counseling Chat</span>
+                    </button>
+                </div>
+
+                <div class="sidebar-bottom">
+                    <button class="nav-item settings-nav-btn" id="navSettingsBtn" title="Settings">
+                        <div class="nav-icon-wrapper">
+                            <i data-lucide="settings"></i>
+                        </div>
+                        <span class="hide-on-collapse">Settings</span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- MAIN CONTENT WRAPPER -->
+            <div class="main-wrapper">
+                
+                <!-- VIEW 1: COUNSELING CHAT VIEW -->
+                <main class="page-view active" id="chatView">
+                    <!-- Header -->
+                    <header class="app-header">
+                        <div class="header-left">
+                            <button class="icon-btn menu-toggle-btn" id="menuToggleBtn" title="Toggle Menu">
+                                <i data-lucide="menu"></i>
+                            </button>
+                            
+                            <!-- QUICK ACTIONS (Visible on Mobile) -->
+                            <div class="quick-actions mobile-only">
+                                <button class="icon-btn outline-btn" id="headerCalcBtn" title="Cutoff Calculator">
+                                    <i data-lucide="calculator"></i>
+                                </button>
+                                <button class="icon-btn outline-btn" id="headerSettingsBtn" title="Settings">
+                                    <i data-lucide="settings"></i>
+                                </button>
+                            </div>
+
+                            <div class="header-title desktop-only">
+                                <h1>Admissions Assistant</h1>
+                                <span class="status-indicator"><span class="pulse-dot"></span> Live Model Ready</span>
+                            </div>
+                        </div>
+                        
+                        <div class="header-right">
+                            <div class="compass-box">
+                                <div class="gauge-meta desktop-only">
+                                    <span class="gauge-label">Admission Zone</span>
+                                    <span class="gauge-state" id="gaugeStatusText">Target</span>
+                                </div>
+                                <div class="compass-gauge">
+                                    <svg viewBox="0 0 120 70" width="68" height="38">
+                                        <path d="M10,62 A50,50 0 0,1 46,14" fill="none" stroke="var(--safe)" stroke-width="7" stroke-linecap="round" opacity="0.9" />
+                                        <path d="M46,14 A50,50 0 0,1 74,14" fill="none" stroke="var(--moderate)" stroke-width="7" stroke-linecap="round" opacity="0.9" />
+                                        <path d="M74,14 A50,50 0 0,1 110,62" fill="none" stroke="var(--ambitious)" stroke-width="7" stroke-linecap="round" opacity="0.9" />
+                                        <g id="needleGroup" transform="translate(60,62) rotate(0)">
+                                            <line x1="0" y1="0" x2="0" y2="-42" stroke="var(--needle)" stroke-width="2.8" stroke-linecap="round" />
+                                            <circle r="4.5" fill="var(--needle)" />
+                                        </g>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    <!-- Chat Messages Stream -->
+                    <div class="messages" id="messagesContainer">
+                        <div class="msg-row bot">
+                            <div class="avatar bot"><i data-lucide="bot"></i></div>
+                            <div class="bubble-container">
+                                <div class="bubble">
+                                    Vanakkam! 👋 I am your <strong>TNEA 2026 Counseling Assistant</strong>.<br><br>
+                                    Share your <strong>Cutoff Marks</strong> (e.g., <em>188.5</em>) or <strong>General Rank</strong> alongside your <strong>Category</strong> (OC, BC, BCM, MBC, SC, SCA, ST) to predict safe, target, and ambitious college options.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="typing-row" id="typingIndicator" style="display: none;">
+                            <div class="avatar bot"><i data-lucide="bot"></i></div>
+                            <div class="typing-dots"><span></span><span></span><span></span></div>
+                        </div>
+                    </div>
+
+                    <!-- Composer / Input -->
+                    <div class="composer">
+                        <div class="chips">
+                            <button class="chip" onclick="sendQuickPrompt('My cutoff is 191.5, OC category. Recommend CSE in Coimbatore.')">
+                                <i data-lucide="sparkles" class="chip-icon"></i> 191.5 OC CSE Coimbatore
+                            </button>
+                            <button class="chip" onclick="sendQuickPrompt('My rank is 14500, BC category. Recommend IT in Chennai.')">
+                                <i data-lucide="sparkles" class="chip-icon"></i> 14500 BC IT Chennai
+                            </button>
+                        </div>
+                        <div class="input-card">
+                            <textarea id="chatInput" rows="1" placeholder="Type your marks, rank, category, or preferred branch…"></textarea>
+                            
+                            <div class="input-actions">
+                                <button class="tool-btn mic-btn" id="micBtn" title="Voice Input">
+                                    <i data-lucide="mic" id="micIcon"></i>
+                                </button>
+                                <button class="send-btn" id="sendBtn" onclick="handleSend()" title="Send Message">
+                                    <i data-lucide="arrow-up"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="disclaimer">
+                            <i data-lucide="shield-check" class="disclaimer-icon"></i> Estimates grounded on official TNEA cutoff records.
+                        </p>
+                    </div>
+                </main>
+
+                <!-- VIEW 2: DEDICATED COLORFUL CUTOFF CALCULATOR PAGE -->
+                <section class="page-view" id="calculatorView">
+                    <!-- Calculator HTML Remains the Same -->
+                    <div class="calc-page-container">
+                        <div class="calc-page-header">
+                            <div class="calc-badge">TNEA Standard Formula</div>
+                            <h2>Engineering Cutoff Calculator</h2>
+                            <p>Calculate your composite score out of <strong>200</strong> based on 12th Standard HSC marks.</p>
+                        </div>
+                        <div class="calc-hero-card">
+                            <div class="calc-score-wrap">
+                                <span class="calc-score-label">Your Aggregate Cutoff</span>
+                                <div class="calc-score-number" id="fullCalcDisplay">000.00</div>
+                                <div class="calc-score-progress">
+                                    <div class="progress-bar-fill" id="calcProgressBar"></div>
+                                </div>
+                            </div>
+                            <div class="calc-formula-tag">
+                                <code>Maths (100) + [Physics (100) ÷ 2] + [Chemistry (100) ÷ 2] = 200</code>
+                            </div>
+                        </div>
+                        <div class="subject-grid">
+                            <div class="subject-card math-card">
+                                <div class="subject-header">
+                                    <div class="subject-icon math-icon"><i data-lucide="superscript"></i></div>
+                                    <div><h4>Mathematics</h4><span class="weightage">Max 100 Marks (100%)</span></div>
+                                </div>
+                                <div class="subject-input-group">
+                                    <input type="number" id="calcMath" min="0" max="100" placeholder="e.g. 96" value="">
+                                    <span class="unit">/ 100</span>
+                                </div>
+                                <div class="contribution">Contributes: <strong id="mathContrib">0.00</strong></div>
+                            </div>
+                            <div class="subject-card phy-card">
+                                <div class="subject-header">
+                                    <div class="subject-icon phy-icon"><i data-lucide="atom"></i></div>
+                                    <div><h4>Physics</h4><span class="weightage">Max 100 Marks (50%)</span></div>
+                                </div>
+                                <div class="subject-input-group">
+                                    <input type="number" id="calcPhy" min="0" max="100" placeholder="e.g. 92" value="">
+                                    <span class="unit">/ 100</span>
+                                </div>
+                                <div class="contribution">Contributes: <strong id="phyContrib">0.00</strong></div>
+                            </div>
+                            <div class="subject-card chem-card">
+                                <div class="subject-header">
+                                    <div class="subject-icon chem-icon"><i data-lucide="flask-conical"></i></div>
+                                    <div><h4>Chemistry</h4><span class="weightage">Max 100 Marks (50%)</span></div>
+                                </div>
+                                <div class="subject-input-group">
+                                    <input type="number" id="calcChem" min="0" max="100" placeholder="e.g. 94" value="">
+                                    <span class="unit">/ 100</span>
+                                </div>
+                                <div class="contribution">Contributes: <strong id="chemContrib">0.00</strong></div>
+                            </div>
+                        </div>
+                        <div class="calc-actions">
+                            <button class="btn-primary-large" id="useCutoffInChatBtn">
+                                <span>Explore Eligible Colleges with this Cutoff</span>
+                                <i data-lucide="arrow-right"></i>
+                            </button>
+                            <button class="btn-subtle" id="returnToChatBtn">Back to Chat</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
         </div>
     </div>
 
-    <!-- Application Logic -->
-    <script src="script.js" defer></script>
+    <!-- NEW: FLOATING GEMINI-STYLE SETTINGS POPOVER MENU -->
+    <div class="gemini-popover" id="settingsPopover">
+        <div class="popover-section">
+            <button class="popover-item"><i data-lucide="database"></i> Counseling DB 2026</button>
+            <button class="popover-item" id="themeMenuTrigger">
+                <i data-lucide="sun"></i> Theme 
+                <i data-lucide="chevron-right" class="arrow-right"></i>
+            </button>
+            <button class="popover-item"><i data-lucide="info"></i> About Assistant</button>
+        </div>
+
+        <!-- THEME FLYOUT SUB-MENU -->
+        <div class="theme-flyout" id="themeFlyout">
+            <button class="popover-item theme-select" data-theme="system"><i style="width:18px; display:inline-block"></i> System</button>
+            <button class="popover-item theme-select" data-theme="light"><i style="width:18px; display:inline-block"></i> Light</button>
+            <button class="popover-item theme-select" data-theme="dark"><i style="width:18px; display:inline-block"></i> Dark</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
