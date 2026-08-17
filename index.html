@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TNEA GPT | 2026 Admissions & Cutoff Compass</title>
+    <title>TNEA GPT | Admissions Assistant</title>
+    
+    <!-- ADDED LOGO AS WEBSITE FAVICON -->
+    <link rel="icon" type="image/jpeg" href="logo.jpeg">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,6 +14,8 @@
     
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- ADDED HTML2PDF FOR DOWNLOADING CHAT -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <link rel="stylesheet" href="style.css">
 </head>
@@ -81,7 +86,6 @@
                                 <i data-lucide="menu"></i>
                             </button>
                             
-                            <!-- QUICK ACTIONS (Visible on Mobile) -->
                             <div class="quick-actions mobile-only">
                                 <button class="icon-btn outline-btn" id="headerCalcBtn" title="Cutoff Calculator">
                                     <i data-lucide="calculator"></i>
@@ -97,54 +101,28 @@
                             </div>
                         </div>
                         
-                        <div class="header-right">
-                            <div class="compass-box">
-                                <div class="gauge-meta desktop-only">
-                                    <span class="gauge-label">Admission Zone</span>
-                                    <span class="gauge-state" id="gaugeStatusText">Target</span>
-                                </div>
-                                <div class="compass-gauge">
-                                    <svg viewBox="0 0 120 70" width="68" height="38">
-                                        <path d="M10,62 A50,50 0 0,1 46,14" fill="none" stroke="var(--safe)" stroke-width="7" stroke-linecap="round" opacity="0.9" />
-                                        <path d="M46,14 A50,50 0 0,1 74,14" fill="none" stroke="var(--moderate)" stroke-width="7" stroke-linecap="round" opacity="0.9" />
-                                        <path d="M74,14 A50,50 0 0,1 110,62" fill="none" stroke="var(--ambitious)" stroke-width="7" stroke-linecap="round" opacity="0.9" />
-                                        <g id="needleGroup" transform="translate(60,62) rotate(0)">
-                                            <line x1="0" y1="0" x2="0" y2="-42" stroke="var(--needle)" stroke-width="2.8" stroke-linecap="round" />
-                                            <circle r="4.5" fill="var(--needle)" />
-                                        </g>
-                                    </svg>
-                                </div>
+                        <!-- 3-DOTS DROPDOWN MENU -->
+                        <div class="header-right" style="position: relative;">
+                            <button class="icon-btn" id="headerMenuBtn" title="More Options">
+                                <i data-lucide="more-vertical"></i>
+                            </button>
+                            <div class="header-dropdown" id="headerDropdown">
+                                <button class="dropdown-item" id="shareBtn"><i data-lucide="share-2"></i> Share Chat</button>
+                                <button class="dropdown-item" id="downloadPdfBtn"><i data-lucide="download"></i> Download as PDF</button>
                             </div>
                         </div>
                     </header>
 
                     <!-- Chat Messages Stream -->
                     <div class="messages" id="messagesContainer">
-                        <div class="msg-row bot">
-                            <div class="avatar bot"><i data-lucide="bot"></i></div>
-                            <div class="bubble-container">
-                                <div class="bubble">
-                                    Vanakkam! 👋 I am your <strong>TNEA 2026 Counseling Assistant</strong>.<br><br>
-                                    Share your <strong>Cutoff Marks</strong> (e.g., <em>188.5</em>) or <strong>General Rank</strong> alongside your <strong>Category</strong> (OC, BC, BCM, MBC, SC, SCA, ST) to predict safe, target, and ambitious college options.
-                                </div>
-                            </div>
-                        </div>
                         <div class="typing-row" id="typingIndicator" style="display: none;">
-                            <div class="avatar bot"><i data-lucide="bot"></i></div>
+                            <div class="avatar bot"><img src="logo.jpeg" alt="Bot" style="width:100%; border-radius:8px;"></div>
                             <div class="typing-dots"><span></span><span></span><span></span></div>
                         </div>
                     </div>
 
-                    <!-- Composer / Input -->
+                    <!-- Composer / Input (Removed Chips) -->
                     <div class="composer">
-                        <div class="chips">
-                            <button class="chip" onclick="sendQuickPrompt('My cutoff is 191.5, OC category. Recommend CSE in Coimbatore.')">
-                                <i data-lucide="sparkles" class="chip-icon"></i> 191.5 OC CSE Coimbatore
-                            </button>
-                            <button class="chip" onclick="sendQuickPrompt('My rank is 14500, BC category. Recommend IT in Chennai.')">
-                                <i data-lucide="sparkles" class="chip-icon"></i> 14500 BC IT Chennai
-                            </button>
-                        </div>
                         <div class="input-card">
                             <textarea id="chatInput" rows="1" placeholder="Type your marks, rank, category, or preferred branch…"></textarea>
                             
@@ -163,7 +141,7 @@
                     </div>
                 </main>
 
-                <!-- VIEW 2: DEDICATED COLORFUL CUTOFF CALCULATOR PAGE -->
+                <!-- VIEW 2: CUTOFF CALCULATOR PAGE -->
                 <section class="page-view" id="calculatorView">
                     <!-- Calculator HTML Remains the Same -->
                     <div class="calc-page-container">
@@ -232,18 +210,17 @@
         </div>
     </div>
 
-    <!-- NEW: FLOATING GEMINI-STYLE SETTINGS POPOVER MENU -->
+    <!-- FLOATING GEMINI-STYLE SETTINGS POPOVER MENU -->
     <div class="gemini-popover" id="settingsPopover">
         <div class="popover-section">
+            <button class="popover-item" onclick="document.getElementById('newChatBtn').click();"><i data-lucide="trash-2"></i> Clear Chat History</button>
             <button class="popover-item"><i data-lucide="database"></i> Counseling DB 2026</button>
             <button class="popover-item" id="themeMenuTrigger">
                 <i data-lucide="sun"></i> Theme 
                 <i data-lucide="chevron-right" class="arrow-right"></i>
             </button>
-            <button class="popover-item"><i data-lucide="info"></i> About Assistant</button>
         </div>
 
-        <!-- THEME FLYOUT SUB-MENU -->
         <div class="theme-flyout" id="themeFlyout">
             <button class="popover-item theme-select" data-theme="system"><i style="width:18px; display:inline-block"></i> System</button>
             <button class="popover-item theme-select" data-theme="light"><i style="width:18px; display:inline-block"></i> Light</button>
