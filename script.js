@@ -16,39 +16,52 @@ document.addEventListener("DOMContentLoaded", () => {
   const sendBtn = document.getElementById("sendBtn");
   const messagesContainer = document.getElementById("messagesContainer");
   const typingIndicator = document.getElementById("typingIndicator");
-  const needleGroup = document.getElementById("needleGroup");
-  const gaugeStatusText = document.getElementById("gaugeStatusText");
 
-  let history = [];
+  // --- 0. MARKED.JS OVERRIDE FOR NEW TABS ---
+  const renderer = new marked.Renderer();
+  renderer.link = function({ href, title, text }) {
+    return `<a target="_blank" rel="noopener noreferrer" href="${href}" title="${title || ''}">${text}</a>`;
+  };
 
-  // --- 1. UNIVERSAL SIDEBAR TOGGLE (Mini-Sidebar on PC, Slide-out on Mobile) ---
+  // --- 1. HISTORY PERSISTENCE USING LOCAL STORAGE ---
+  let history = JSON.parse(localStorage.getItem("tnea_chat_history")) || [];
+
+  const defaultWelcomeMessage = `Vanakkam! 👋 I am your <strong>TNEA 2026 Counseling Assistant</strong>.<br><br>
+  Share your <strong>Cutoff Marks</strong> (e.g., <em>188.5</em>) alongside your <strong>Category</strong> (OC, BC, BCM, MBC, SC, SCA, ST) to predict safe, target, and ambitious college options. You can also ask me about specific college codes or hostel fees!`;
+
+  function renderHistory() {
+    document.querySelectorAll('.msg-row').forEach(el => el.remove());
+
+    if (history.length === 0) {
+      appendMessageUI(defaultWelcomeMessage, "bot");
+    } else {
+      history.forEach(msg => {
+        appendMessageUI(msg.content, msg.role === 'assistant' ? 'bot' : 'user');
+      });
+    }
+  }
+
+  // --- 2. UNIVERSAL SIDEBAR TOGGLE ---
   const menuToggleBtn = document.getElementById("menuToggleBtn");
   const closeSidebarBtn = document.getElementById("closeSidebarBtn");
 
   function toggleSidebar() {
-    if (window.innerWidth <= 768) {
-      sidebar.classList.toggle("mobile-open");
-    } else {
-      sidebar.classList.toggle("collapsed");
-    }
+    if (window.innerWidth <= 768) sidebar.classList.toggle("mobile-open");
+    else sidebar.classList.toggle("collapsed");
   }
 
   function closeSidebar() {
-    if (window.innerWidth <= 768) {
-      sidebar.classList.remove("mobile-open");
-    } else {
-      sidebar.classList.add("collapsed");
-    }
+    if (window.innerWidth <= 768) sidebar.classList.remove("mobile-open");
+    else sidebar.classList.add("collapsed");
   }
 
   menuToggleBtn.addEventListener("click", toggleSidebar);
   closeSidebarBtn.addEventListener("click", closeSidebar);
 
-  // --- 2. HEADER QUICK ACTIONS (Visible on Mobile) ---
+  // --- 3. HEADER QUICK ACTIONS ---
   const headerCalcBtn = document.getElementById("headerCalcBtn");
   headerCalcBtn.addEventListener("click", () => switchView("calc"));
 
-  // --- 3. SMOOTH PAGE VIEW SWITCHING ---
   function switchView(target) {
     if (target === "calc") {
       chatView.classList.remove("active");
@@ -68,7 +81,61 @@ document.addEventListener("DOMContentLoaded", () => {
   navChatBtn.addEventListener("click", () => switchView("chat"));
   returnToChatBtn.addEventListener("click", () => switchView("chat"));
 
-  // --- 4. FLOATING POPOVER SETTINGS MENU (Gemini Style) ---
+  // --- 4. 3-DOTS HEADER MENU & SHARE/PDF ---
+  const headerMenuBtn = document.getElementById("headerMenuBtn");
+  const headerDropdown = document.getElementById("headerDropdown");
+  
+  headerMenuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      headerDropdown.classList.toggle("active");
+  });
+  
+  document.addEventListener("click", (e) => {
+      if (!headerDropdown.contains(e.target) && e.target !== headerMenuBtn) {
+          headerDropdown.classList.remove("active");
+      }
+  });
+
+  // Share Button Logic
+  document.getElementById("shareBtn").addEventListener("click", async () => {
+      headerDropdown.classList.remove("active");
+      if (navigator.share) {
+          try {
+              await navigator.share({
+                  title: 'TNEA GPT 2026',
+                  text: 'Check out this TNEA Counseling Assistant!',
+                  url: window.location.href
+              });
+          } catch (err) { console.log('Share canceled', err); }
+      } else {
+          navigator.clipboard.writeText(window.location.href);
+          alert("Link copied to clipboard!");
+      }
+  });
+
+  // Download PDF Logic
+  document.getElementById("downloadPdfBtn").addEventListener("click", () => {
+      headerDropdown.classList.remove("active");
+      const element = document.getElementById('messagesContainer');
+      
+      // Temporarily hide typing indicator and adjust CSS for full capture
+      document.getElementById('typingIndicator').style.display = 'none';
+      element.classList.add('pdf-export-mode');
+      
+      const opt = {
+          margin:       10,
+          filename:     'TNEA_Chat_History.pdf',
+          image:        { type: 'jpeg', quality: 0.98 },
+          html2canvas:  { scale: 2, useCORS: true, windowWidth: element.scrollWidth },
+          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      
+      html2pdf().set(opt).from(element).save().then(() => {
+          element.classList.remove('pdf-export-mode'); // Revert styles
+      });
+  });
+
+  // --- 5. FLOATING POPOVER SETTINGS MENU ---
   const settingsPopover = document.getElementById("settingsPopover");
   const themeFlyout = document.getElementById("themeFlyout");
   const navSettingsBtn = document.getElementById("navSettingsBtn");
@@ -78,16 +145,14 @@ document.addEventListener("DOMContentLoaded", () => {
   function openSettingsMenu(event) {
     const btnRect = event.currentTarget.getBoundingClientRect();
     settingsPopover.classList.add('active');
-    themeFlyout.classList.remove('active'); // reset flyout
+    themeFlyout.classList.remove('active');
 
     if (window.innerWidth <= 768) {
-      // Mobile: Open from Header (Top Right)
       settingsPopover.style.top = (btnRect.bottom + 10) + 'px';
       settingsPopover.style.right = '16px';
       settingsPopover.style.left = 'auto';
       settingsPopover.style.bottom = 'auto';
     } else {
-      // Desktop: Open from Sidebar (Bottom Left)
       settingsPopover.style.bottom = (window.innerHeight - btnRect.top - 10) + 'px';
       settingsPopover.style.left = (btnRect.right + 10) + 'px';
       settingsPopover.style.top = 'auto';
@@ -98,13 +163,11 @@ document.addEventListener("DOMContentLoaded", () => {
   navSettingsBtn.addEventListener("click", openSettingsMenu);
   headerSettingsBtn.addEventListener("click", openSettingsMenu);
 
-  // Toggle Theme Flyout
   themeMenuTrigger.addEventListener("click", (e) => {
-    e.stopPropagation(); // prevent document click from closing
+    e.stopPropagation(); 
     themeFlyout.classList.toggle("active");
   });
 
-  // Close menus when clicking outside
   document.addEventListener("click", (e) => {
     const isClickInside = settingsPopover.contains(e.target) || 
                           e.target.closest('#navSettingsBtn') || 
@@ -116,14 +179,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // --- 5. THEME SYSTEM APPLICATION ---
+  // --- 6. THEME SYSTEM APPLICATION ---
   const savedTheme = localStorage.getItem("tnea_theme_choice") || "system";
   applyTheme(savedTheme);
 
   function applyTheme(theme) {
     let isDark = false;
-    
-    // Evaluate System Preference
     if (theme === "system") {
       isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     } else {
@@ -140,7 +201,6 @@ document.addEventListener("DOMContentLoaded", () => {
     
     localStorage.setItem("tnea_theme_choice", theme);
 
-    // Update Popover Checkmarks
     document.querySelectorAll('.theme-select').forEach(btn => {
       const btnTheme = btn.getAttribute('data-theme');
       if (btnTheme === theme) {
@@ -152,31 +212,17 @@ document.addEventListener("DOMContentLoaded", () => {
     lucide.createIcons();
   }
 
-  // Listen for clicks on Theme Flyout Buttons
   document.querySelectorAll('.theme-select').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const selectedTheme = e.currentTarget.getAttribute('data-theme');
-      applyTheme(selectedTheme);
-      themeFlyout.classList.remove("active"); // close flyout after selection
+      applyTheme(e.currentTarget.getAttribute('data-theme'));
+      themeFlyout.classList.remove("active");
     });
   });
 
-  // Automatically update if 'System' theme is active and OS changes
-  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
-    if (localStorage.getItem("tnea_theme_choice") === "system") {
-      applyTheme("system");
-    }
-  });
-
-  // --- 6. CUTOFF CALCULATOR REALTIME ENGINE ---
-  const calcMath = document.getElementById("calcMath");
-  const calcPhy = document.getElementById("calcPhy");
-  const calcChem = document.getElementById("calcChem");
+  // --- 7. CUTOFF CALCULATOR REALTIME ENGINE ---
+  const [calcMath, calcPhy, calcChem] = [document.getElementById("calcMath"), document.getElementById("calcPhy"), document.getElementById("calcChem")];
   const fullCalcDisplay = document.getElementById("fullCalcDisplay");
   const calcProgressBar = document.getElementById("calcProgressBar");
-  const mathContrib = document.getElementById("mathContrib");
-  const phyContrib = document.getElementById("phyContrib");
-  const chemContrib = document.getElementById("chemContrib");
   const useCutoffInChatBtn = document.getElementById("useCutoffInChatBtn");
 
   function runCalculator() {
@@ -184,22 +230,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const p = Math.min(Math.max(parseFloat(calcPhy.value) || 0, 0), 100);
     const c = Math.min(Math.max(parseFloat(calcChem.value) || 0, 0), 100);
 
-    const mPart = m; const pPart = p / 2; const cPart = c / 2;
-    const totalCutoff = (mPart + pPart + cPart).toFixed(2);
-
-    mathContrib.textContent = mPart.toFixed(2);
-    phyContrib.textContent = pPart.toFixed(2);
-    chemContrib.textContent = cPart.toFixed(2);
+    const totalCutoff = (m + (p / 2) + (c / 2)).toFixed(2);
+    document.getElementById("mathContrib").textContent = m.toFixed(2);
+    document.getElementById("phyContrib").textContent = (p / 2).toFixed(2);
+    document.getElementById("chemContrib").textContent = (c / 2).toFixed(2);
     fullCalcDisplay.textContent = totalCutoff;
 
-    const percentage = (totalCutoff / 200) * 100;
-    calcProgressBar.style.width = `${percentage}%`;
+    calcProgressBar.style.width = `${(totalCutoff / 200) * 100}%`;
     return totalCutoff;
   }
 
-  [calcMath, calcPhy, calcChem].forEach(input => {
-    input.addEventListener("input", runCalculator);
-  });
+  [calcMath, calcPhy, calcChem].forEach(input => input.addEventListener("input", runCalculator));
 
   useCutoffInChatBtn.addEventListener("click", () => {
     const finalScore = runCalculator();
@@ -210,45 +251,29 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // --- 7. NEW CHAT RESET ---
+  // --- 8. CLEAR / NEW CHAT ---
   document.getElementById("newChatBtn").addEventListener("click", () => {
     history = [];
-    messagesContainer.innerHTML = `
-      <div class="msg-row bot">
-          <div class="avatar bot"><i data-lucide="bot"></i></div>
-          <div class="bubble-container">
-              <div class="bubble">
-                  Vanakkam! 👋 I am your <strong>TNEA 2026 Counseling Assistant</strong>.<br><br>
-                  Share your <strong>Cutoff Marks</strong> (e.g., <em>188.5</em>) or <strong>General Rank</strong> alongside your <strong>Category</strong> (OC, BC, BCM, MBC, SC, SCA, ST) to predict safe, target, and ambitious college options.
-              </div>
-          </div>
-      </div>
-    `;
-    messagesContainer.appendChild(typingIndicator);
-    lucide.createIcons();
+    localStorage.removeItem("tnea_chat_history");
+    renderHistory();
     switchView("chat");
     if (window.innerWidth <= 768) closeSidebar();
+    settingsPopover.classList.remove('active');
   });
 
-  // --- 8. CHAT & GAUGE LOGIC ---
-  function updateGauge(category) {
-    let angle = 0; let text = "Target"; let color = "var(--moderate)";
-    if (category === "safe") { angle = -55; text = "Safe"; color = "var(--safe)"; } 
-    else if (category === "ambitious") { angle = 55; text = "Ambitious"; color = "var(--ambitious)"; }
-    needleGroup.setAttribute("transform", `translate(60,62) rotate(${angle})`);
-    gaugeStatusText.textContent = text;
-    gaugeStatusText.style.color = color;
-  }
-
+  // --- 9. CHAT LOGIC & UI APPENDING ---
   function scrollToBottom() { messagesContainer.scrollTop = messagesContainer.scrollHeight; }
 
-  function appendMessage(text, sender) {
+  function appendMessageUI(text, sender) {
     const rowDiv = document.createElement("div");
     rowDiv.className = `msg-row ${sender}`;
 
     const avatarDiv = document.createElement("div");
     avatarDiv.className = `avatar ${sender}`;
-    avatarDiv.innerHTML = sender === "bot" ? `<i data-lucide="bot"></i>` : "U";
+    // User gets a unique icon, Bot gets the logo
+    avatarDiv.innerHTML = sender === "bot" 
+        ? `<img src="logo.jpeg" alt="Bot" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">` 
+        : `<i data-lucide="user"></i>`;
 
     const bubbleContainer = document.createElement("div");
     bubbleContainer.className = "bubble-container";
@@ -256,11 +281,7 @@ document.addEventListener("DOMContentLoaded", () => {
     bubbleDiv.className = "bubble";
 
     if (sender === "bot") {
-      bubbleDiv.innerHTML = marked.parse(text);
-      const lower = text.toLowerCase();
-      if (lower.includes("ambitious")) updateGauge("ambitious");
-      else if (lower.includes("safe")) updateGauge("safe");
-      else updateGauge("moderate");
+      bubbleDiv.innerHTML = marked.parse(text, { renderer });
     } else {
       bubbleDiv.textContent = text;
     }
@@ -274,24 +295,16 @@ document.addEventListener("DOMContentLoaded", () => {
     scrollToBottom();
   }
 
-  window.sendQuickPrompt = function(promptText) {
-    inputField.value = promptText;
-    handleSend();
-  };
-
   inputField.addEventListener("input", function() {
     this.style.height = "auto";
     this.style.height = this.scrollHeight + "px";
   });
 
   inputField.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   });
 
-  // --- 9. VOICE RECOGNITION (Web Speech API) ---
+  // --- 10. FULLY WORKING VOICE RECOGNITION (AUTO-SEND) ---
   const micBtn = document.getElementById("micBtn");
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -309,31 +322,37 @@ document.addEventListener("DOMContentLoaded", () => {
     recognition.onstart = () => {
       isListening = true;
       micBtn.classList.add("listening");
-      inputField.placeholder = "Listening to your marks & category...";
+      inputField.placeholder = "Listening...";
+      inputField.value = ""; // Clear for new voice input
     };
 
     recognition.onresult = (e) => {
       const transcript = e.results[0][0].transcript;
-      inputField.value += (inputField.value ? ' ' : '') + transcript;
+      inputField.value = transcript;
       inputField.style.height = "auto";
       inputField.style.height = inputField.scrollHeight + "px";
     };
 
     recognition.onerror = () => {
       micBtn.classList.remove("listening");
-      inputField.placeholder = "Type your marks, rank, category, or questions…";
+      inputField.placeholder = "Type your marks, rank, category, or preferred branch…";
     };
 
     recognition.onend = () => {
       isListening = false;
       micBtn.classList.remove("listening");
-      inputField.placeholder = "Type your marks, rank, category, or questions…";
+      inputField.placeholder = "Type your marks, rank, category, or preferred branch…";
+      
+      // Auto send if there's text
+      if(inputField.value.trim().length > 0) {
+          handleSend();
+      }
     };
   } else {
-    micBtn.style.display = "none";
+    micBtn.style.display = "none"; // Hide if browser doesn't support it
   }
 
-  // --- 10. SEND REQUEST TO SERVER ---
+  // --- 11. SEND REQUEST TO SERVER ---
   window.handleSend = async function() {
     const text = inputField.value.trim();
     if (!text) return;
@@ -341,8 +360,9 @@ document.addEventListener("DOMContentLoaded", () => {
     inputField.value = "";
     inputField.style.height = "auto";
 
-    appendMessage(text, "user");
+    appendMessageUI(text, "user");
     history.push({ role: "user", content: text });
+    localStorage.setItem("tnea_chat_history", JSON.stringify(history));
 
     typingIndicator.style.display = "flex";
     scrollToBottom();
@@ -360,15 +380,19 @@ document.addEventListener("DOMContentLoaded", () => {
       sendBtn.disabled = false;
 
       if (data.reply) {
-        appendMessage(data.reply, "bot");
+        appendMessageUI(data.reply, "bot");
         history.push({ role: "assistant", content: data.reply });
+        localStorage.setItem("tnea_chat_history", JSON.stringify(history));
       } else {
-        appendMessage("Unable to retrieve counseling data. Please try again.", "bot");
+        appendMessageUI("Unable to retrieve counseling data.", "bot");
       }
     } catch (err) {
       typingIndicator.style.display = "none";
       sendBtn.disabled = false;
-      appendMessage("Network error. Please make sure the server is active.", "bot");
+      appendMessageUI("Network error. Make sure the backend server is running.", "bot");
     }
   };
+
+  // INITIALIZE UI
+  renderHistory();
 });
