@@ -204,7 +204,7 @@ app.post('/api/chat', async (req, res) => {
     if (!rawMessage.trim()) return res.json({ reply: "Please type a question or provide your marks so I can help you!" });
     if (rawMessage.length > 300) return res.json({ reply: "⚠️ **Message too long.** Please keep your questions brief (under 300 characters)." });
 
-    // 🛑 NEW: Intercept purely numerical inputs to prevent guessing
+    // 🛑 Intercept purely numerical inputs to prevent guessing
     if (/^\s*\d+(\.\d+)?\s*$/.test(rawMessage)) {
         return res.json({ 
             reply: `You entered **${rawMessage.trim()}**. \n\nPlease clarify if this represents your **Cutoff Score**, a **Counselling Rank**, or a **4-digit College Code**? \n\n*(For example, reply "Code ${rawMessage.trim()}" or "My cutoff is ${rawMessage.trim()}")*` 
@@ -265,15 +265,19 @@ app.post('/api/chat', async (req, res) => {
         predictionContext += `\n\n[COLLEGE DETAILS CONTEXT (Source: colleges.json)]:\n` + JSON.stringify(collegeLookup.data, null, 2) + `\nAnswer the user's specific query utilizing ONLY the details above. Do not guess.`;
     }
 
+    // 🔥 NEW: Improved Intent Detection for Shorthand (e.g., "167 BC Mech")
     const hasNumber = (detectedRank !== null || detectedScore !== null);
     const hasCategory = detectedCategory !== null;
+    const hasBranch = prefs.branches.length > 0;
+    
     const isAskingForColleges = message.toLowerCase().match(/(recommend|suggest|predict|what college|which college|get into|list)/);
+    const wantsPrediction = isAskingForColleges || (hasNumber && hasCategory) || (hasNumber && hasBranch);
 
     // 5. Predict Colleges Logic
-    if (hasNumber && isAskingForColleges) {
+    if (wantsPrediction && hasNumber) {
         const missingItems = [];
         if (!hasCategory) missingItems.push("Community Category (e.g., OC, BC, MBC)");
-        if (prefs.branches.length === 0) missingItems.push("Preferred Department/Branch (e.g., CSE, IT, ECE)");
+        if (!hasBranch) missingItems.push("Preferred Department/Branch (e.g., CSE, IT, ECE)");
 
         if (missingItems.length > 0) {
             predictionContext += `\n\n[SYSTEM NOTIFICATION]: The user provided a valid cutoff/rank but is missing: ${missingItems.join(" AND ")}.
@@ -293,7 +297,7 @@ app.post('/api/chat', async (req, res) => {
                 : `\n\n[NO EXACT MATCHES FOUND IN DATABASE] State that no exact college matches were found for this department ${regionText}.`;
             }
         }
-    } else if (isAskingForColleges && !hasNumber) {
+    } else if (wantsPrediction && !hasNumber) {
         predictionContext += `\n\n[SYSTEM NOTIFICATION]: The user wants predictions but did not provide a cutoff or rank. Ask them to provide their Cutoff/Rank, Category, and preferred department.`;
     }
 
