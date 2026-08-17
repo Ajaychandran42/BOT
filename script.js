@@ -5,26 +5,29 @@ document.addEventListener("DOMContentLoaded", () => {
   const sidebar = document.getElementById("sidebar");
   const mobileOverlay = document.getElementById("mobileOverlay");
   
-  // Navigation View Switchers
   const chatView = document.getElementById("chatView");
   const calculatorView = document.getElementById("calculatorView");
   const navChatBtn = document.getElementById("navChatBtn");
   const navCalcPageBtn = document.getElementById("navCalcPageBtn");
   const returnToChatBtn = document.getElementById("returnToChatBtn");
 
-  // Chat Elements
   const inputField = document.getElementById("chatInput");
   const sendBtn = document.getElementById("sendBtn");
   const messagesContainer = document.getElementById("messagesContainer");
   const typingIndicator = document.getElementById("typingIndicator");
 
-  // --- 0. MARKED.JS OVERRIDE FOR NEW TABS ---
+  // --- 0. MARKED.JS OVERRIDES (New Tabs & Responsive Tables) ---
   const renderer = new marked.Renderer();
   renderer.link = function({ href, title, text }) {
     return `<a target="_blank" rel="noopener noreferrer" href="${href}" title="${title || ''}">${text}</a>`;
   };
+  renderer.table = function(token) {
+    // Render the default table HTML and wrap it in a div for mobile scrolling
+    const defaultTable = marked.Renderer.prototype.table.call(this, token);
+    return `<div class="table-wrapper">${defaultTable}</div>`;
+  };
 
-  // --- 1. HISTORY PERSISTENCE USING LOCAL STORAGE ---
+  // --- 1. HISTORY PERSISTENCE ---
   let history = JSON.parse(localStorage.getItem("tnea_chat_history")) || [];
 
   const defaultWelcomeMessage = `Vanakkam! 👋 I am your <strong>TNEA 2026 Counseling Assistant</strong>.<br><br>
@@ -32,7 +35,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderHistory() {
     document.querySelectorAll('.msg-row').forEach(el => el.remove());
-
     if (history.length === 0) {
       appendMessageUI(defaultWelcomeMessage, "bot");
     } else {
@@ -68,7 +70,14 @@ document.addEventListener("DOMContentLoaded", () => {
   if (closeSidebarBtn) closeSidebarBtn.addEventListener("click", closeSidebar);
   if (mobileOverlay) mobileOverlay.addEventListener("click", closeSidebar);
 
-  // --- 3. HEADER QUICK ACTIONS ---
+  // Tablet auto-collapse handler
+  window.addEventListener('resize', () => {
+      if (window.innerWidth > 768 && window.innerWidth <= 1024) {
+          sidebar.classList.add('collapsed');
+      }
+  });
+
+  // --- 3. NAVIGATION ---
   const headerCalcBtn = document.getElementById("headerCalcBtn");
   if (headerCalcBtn) headerCalcBtn.addEventListener("click", () => switchView("calc"));
 
@@ -91,7 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (navChatBtn) navChatBtn.addEventListener("click", () => switchView("chat"));
   if (returnToChatBtn) returnToChatBtn.addEventListener("click", () => switchView("chat"));
 
-  // --- 4. 3-DOTS HEADER MENU & SHARE/PDF ---
+  // --- 4. 3-DOTS MENU & EXPORT ---
   const headerMenuBtn = document.getElementById("headerMenuBtn");
   const headerDropdown = document.getElementById("headerDropdown");
   
@@ -100,7 +109,6 @@ document.addEventListener("DOMContentLoaded", () => {
           e.stopPropagation();
           headerDropdown.classList.toggle("active");
       });
-      
       document.addEventListener("click", (e) => {
           if (!headerDropdown.contains(e.target) && e.target !== headerMenuBtn) {
               headerDropdown.classList.remove("active");
@@ -108,7 +116,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   }
 
-  // Share Button Logic
   const shareBtn = document.getElementById("shareBtn");
   if (shareBtn) {
       shareBtn.addEventListener("click", async () => {
@@ -120,7 +127,7 @@ document.addEventListener("DOMContentLoaded", () => {
                       text: 'Check out this TNEA Counseling Assistant!',
                       url: window.location.href
                   });
-              } catch (err) { console.log('Share canceled', err); }
+              } catch (err) {}
           } else {
               navigator.clipboard.writeText(window.location.href);
               alert("Link copied to clipboard!");
@@ -128,13 +135,11 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   }
 
-  // Download PDF Logic
   const downloadPdfBtn = document.getElementById("downloadPdfBtn");
   if (downloadPdfBtn) {
       downloadPdfBtn.addEventListener("click", () => {
           headerDropdown.classList.remove("active");
           const element = document.getElementById('messagesContainer');
-          
           document.getElementById('typingIndicator').style.display = 'none';
           element.classList.add('pdf-export-mode');
           
@@ -145,14 +150,13 @@ document.addEventListener("DOMContentLoaded", () => {
               html2canvas:  { scale: 2, useCORS: true, windowWidth: element.scrollWidth },
               jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
           };
-          
           html2pdf().set(opt).from(element).save().then(() => {
               element.classList.remove('pdf-export-mode'); 
           });
       });
   }
 
-  // --- 5. FLOATING POPOVER SETTINGS MENU ---
+  // --- 5. SETTINGS POPOVER ---
   const settingsPopover = document.getElementById("settingsPopover");
   const themeFlyout = document.getElementById("themeFlyout");
   const navSettingsBtn = document.getElementById("navSettingsBtn");
@@ -199,7 +203,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // --- 6. THEME SYSTEM APPLICATION ---
+  // --- 6. THEMES ---
   const savedTheme = localStorage.getItem("tnea_theme_choice") || "system";
   applyTheme(savedTheme);
 
@@ -239,7 +243,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // --- 7. CUTOFF CALCULATOR REALTIME ENGINE ---
+  // --- 7. CALCULATOR ---
   const calcMath = document.getElementById("calcMath");
   const calcPhy = document.getElementById("calcPhy");
   const calcChem = document.getElementById("calcChem");
@@ -249,7 +253,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function runCalculator() {
     if(!calcMath || !calcPhy || !calcChem) return 0;
-      
     const m = Math.min(Math.max(parseFloat(calcMath.value) || 0, 0), 100);
     const p = Math.min(Math.max(parseFloat(calcPhy.value) || 0, 0), 100);
     const c = Math.min(Math.max(parseFloat(calcChem.value) || 0, 0), 100);
@@ -259,7 +262,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("phyContrib").textContent = (p / 2).toFixed(2);
     document.getElementById("chemContrib").textContent = (c / 2).toFixed(2);
     fullCalcDisplay.textContent = totalCutoff;
-
     calcProgressBar.style.width = `${(totalCutoff / 200) * 100}%`;
     return totalCutoff;
   }
@@ -279,7 +281,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   }
 
-  // --- 8. CLEAR / NEW CHAT ---
+  // --- 8. CHAT LOGIC ---
   const newChatBtn = document.getElementById("newChatBtn");
   if (newChatBtn) {
       newChatBtn.addEventListener("click", () => {
@@ -292,8 +294,10 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   }
 
-  // --- 9. CHAT LOGIC & UI APPENDING ---
-  function scrollToBottom() { messagesContainer.scrollTop = messagesContainer.scrollHeight; }
+  function scrollToBottom() { 
+      const wrapper = document.querySelector('.messages-wrapper');
+      if(wrapper) wrapper.scrollTop = wrapper.scrollHeight; 
+  }
 
   function appendMessageUI(text, sender) {
     const rowDiv = document.createElement("div");
@@ -301,9 +305,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const avatarDiv = document.createElement("div");
     avatarDiv.className = `avatar ${sender}`;
-    // User gets a unique icon, Bot gets the logo
     avatarDiv.innerHTML = sender === "bot" 
-        ? `<img src="logo.jpeg" alt="Bot" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">` 
+        ? `<img src="logo.jpeg" alt="Bot">` 
         : `<i data-lucide="user"></i>`;
 
     const bubbleContainer = document.createElement("div");
@@ -324,13 +327,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     messagesContainer.insertBefore(rowDiv, typingIndicator);
     lucide.createIcons();
-    scrollToBottom();
+    setTimeout(scrollToBottom, 50); // Slight delay for animation render
   }
 
   if (inputField) {
       inputField.addEventListener("input", function() {
         this.style.height = "auto";
-        this.style.height = this.scrollHeight + "px";
+        this.style.height = (this.scrollHeight <= 140 ? this.scrollHeight : 140) + "px";
       });
 
       inputField.addEventListener("keydown", (e) => {
@@ -338,7 +341,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   }
 
-  // --- 10. FULLY WORKING VOICE RECOGNITION (AUTO-SEND) ---
+  // --- 9. VOICE INPUT ---
   const micBtn = document.getElementById("micBtn");
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -369,23 +372,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     recognition.onerror = () => {
       micBtn.classList.remove("listening");
-      inputField.placeholder = "Type your marks, rank, category, or preferred branch…";
+      inputField.placeholder = "Type marks, rank, or preferred branch…";
     };
 
     recognition.onend = () => {
       isListening = false;
       micBtn.classList.remove("listening");
-      inputField.placeholder = "Type your marks, rank, category, or preferred branch…";
-      
-      if(inputField.value.trim().length > 0) {
-          handleSend();
-      }
+      inputField.placeholder = "Type marks, rank, or preferred branch…";
+      if(inputField.value.trim().length > 0) handleSend();
     };
   } else if (micBtn) {
     micBtn.style.display = "none";
   }
 
-  // --- 11. SEND REQUEST TO SERVER ---
+  // --- 10. SERVER CALL ---
   window.handleSend = async function() {
     const text = inputField.value.trim();
     if (!text) return;
