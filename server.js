@@ -24,13 +24,13 @@ try {
   console.error("❌ Error loading JSON databases. Check your filenames.", err);
 }
 
-// 2. Comprehensive TNEA 2026 System Prompt (Brochure Data Injected)
+// 2. Comprehensive TNEA 2026 System Prompt
 const TNEA_SYSTEM_PROMPT = `
 You are the official Tamil Nadu Engineering Admissions (TNEA) 2026 Counseling Assistant & College Predictor. 
-Answer all queries accurately using the following official TNEA 2026 Information Brochure rules.
 
---- 0. GREETING DIRECTIVE ---
-ALWAYS start your response with a polite, warm greeting (e.g., "Hello!", "Vanakkam!", "Hi there!").
+--- 0. GREETING & GOODBYE DIRECTIVE ---
+- If the user greets you (e.g., "Hi", "Hello", "Vanakkam", "Hey"), respond warmly, introduce yourself as the TNEA 2026 Assistant, and ask how you can assist them with college codes, cutoffs, or ranks.
+- If the user says goodbye or thank you (e.g., "Bye", "Thanks", "See you"), reply with a polite and encouraging farewell wishing them the best for their engineering admissions.
 
 --- 1. OFFICIAL TNEA 2026 RULEBOOK ---
 **A. Minimum Eligibility Marks (PCM Average):**
@@ -42,38 +42,19 @@ ALWAYS start your response with a polite, warm greeting (e.g., "Hello!", "Vanakk
 
 **C. Special Quotas & Branch-Specific Rules:**
 - Eminent Sports Persons: 500 seats. Ex-Servicemen: 150 seats. Differently Abled: 5% of seats.
-- **Marine Engineering Rules:** Requires 60% in PCM, 50% in English (10th/12th). Max age 25. Min Height: 157cm, Min Weight: 48kg, Normal Vision. IMU CET qualification is strictly required.
-- **Mining Engineering Rules:** Female candidates are restricted from working below ground.
+- **Marine Engineering Rules:** Requires 60% in PCM, 50% in English (10th/12th). Max age 25. Min Height: 157cm, Min Weight: 48kg. IMU CET is mandatory.
 
 **D. Scholarships & Fee Concessions:**
-- **7.5% Govt School Quota:** Full fee waiver (Tuition, Hostel, and Development fees) for students who studied 6th to 12th in TN State Govt Schools.
-- **First Graduate Concession:** Tuition fee waiver for the first graduate in a family. Sibling must not have availed it. Requires e-Certificate.
-- **AICTE TFW (Tuition Fee Waiver):** For students with parental annual income less than Rs. 8.0 Lakhs.
-- **Post Matric Scholarship:** For SC/SCA/ST and SC/SCA Converted Christians with parental annual income less than Rs. 2.5 Lakhs.
+- **7.5% Govt School Quota:** Full fee waiver (Tuition, Hostel, and Development fees) for 6th-12th TN State Govt School students.
+- **First Graduate Concession:** Tuition fee waiver. Sibling must not have availed it. Requires e-Certificate.
 
-**E. Counselling Process & Fees:**
-- **Registration Fee:** OC/BC/BCM/MBC/DNC: Rs. 500/- | SC/SCA/ST: Rs. 250/-.
-- **Confirmation Options during Allotment:**
-  1. *Accept and Join:* Satisfied, download order, and report to college.
-  2. *Accept and Upward:* Satisfied with current seat, but waiting for higher choices. Must report to TFC to pay fees and hold the seat.
-  3. *Decline and Upward:* Declines current seat, waits for higher choices.
-  4. *Decline and move to next round:* Declines seat, moves to the next counseling round.
-  5. *Decline and Quit:* Declines seat and quits counseling.
-  6. *Upward or move to next round:* If no seat was allotted, opt for upward movement or next round.
+--- 2. STRICT COLLEGE CODE & ANTI-HALLUCINATION RULES ---
+- REMEMBER: A college code is ALWAYS a strictly unique 4-digit number.
+- NEVER GUESS OR INVENT COLLEGE CODES OR DETAILS. 
+- If the user asks about a specific college or code, YOU MUST ONLY USE the [COLLEGE DETAILS CONTEXT] provided at the end of the prompt to answer.
+- If the [COLLEGE DETAILS CONTEXT] is empty, inform the user: "The 4-digit college code or name provided is invalid or unavailable in the official database." Do not hallucinate.
 
---- 2. GIBBERISH & JAILBREAK GUARDRAIL ---
-- If the user inputs random letters, symbols, or unreadable text, politely reply: "I didn't quite catch that. Could you please rephrase your question about TNEA counseling or engineering colleges?"
-- Under NO circumstances should you write code, roleplay, or discuss topics outside of TNEA Admissions.
-
---- 3. COLLEGE INFORMATION INQUIRIES ---
-If the user asks for details about a specific college (e.g., "Hostel fee for CEG", "Principal of CIT"), utilize the [COLLEGE DETAILS CONTEXT] injected below to provide precise answers regarding:
-- College TNEA Code & Principal Name
-- Official Contacts (Phone, Email, Website)
-- Autonomous & Minority Status
-- Hostel Facilities (Mess Bill, Room Rent, Caution Deposit)
-- Transport Facilities & Charges
-
---- 4. PREDICTION TABLE FORMATTING ---
+--- 3. PREDICTION TABLE FORMATTING ---
 When recommending colleges based on cutoff/rank, output a clean Markdown table with exactly these columns:
 | Code | College Name | Branch | Closing Rank / Cutoff | Chance of Admission |
 `;
@@ -107,7 +88,7 @@ function extractPreferences(text) {
   return { cities: detectedCities, branches: detectedBranches };
 }
 
-// 4. Recommendation Matchers 
+// 4. Recommendation Matchers
 function getRecommendationsByRank(userRank, category = "OC", prefs) {
   const validCategory = category.toUpperCase();
   let matched = [];
@@ -120,6 +101,7 @@ function getRecommendationsByRank(userRank, category = "OC", prefs) {
     const branchName = item.branch_name ? item.branch_name.toLowerCase() : (item.branch || "").toLowerCase();
 
     if (prefs.cities.length > 0 && !prefs.cities.some(c => collegeName.includes(c))) continue;
+    
     if (prefs.branches.length > 0 && !prefs.branches.some(b => 
         branchKeywords[b].some(kw => branchName.includes(kw)) || branchName.includes(`(${b.toUpperCase()})`)
       )) continue;
@@ -150,6 +132,7 @@ function getRecommendationsByCutoff(userScore, category = "OC", prefs) {
     const branchName = item.branch_name ? item.branch_name.toLowerCase() : (item.branch || "").toLowerCase();
 
     if (prefs.cities.length > 0 && !prefs.cities.some(c => collegeName.includes(c))) continue;
+    
     if (prefs.branches.length > 0 && !prefs.branches.some(b => 
         branchKeywords[b].some(kw => branchName.includes(kw)) || branchName.includes(`(${b.toUpperCase()})`)
       )) continue;
@@ -168,13 +151,24 @@ function getRecommendationsByCutoff(userScore, category = "OC", prefs) {
   return matched.sort((a, b) => Math.abs(userScore - a.required_cutoff) - Math.abs(userScore - b.required_cutoff)).slice(0, 10);
 }
 
-// 5. SMARTER College Details Locator
+// 5. STRICT College Details Locator
 function findCollegeDetails(query) {
   const q = query.toLowerCase();
-  const codeMatch = q.match(/\b\d{1,4}\b/);
-  const code = codeMatch ? parseInt(codeMatch[0], 10) : null;
   let matches = [];
 
+  // Match any 1-4 digit number to look up college codes
+  const rawCodes = q.match(/\b\d{1,4}\b/g);
+  if (rawCodes) {
+      for (let c of rawCodes) {
+          const codeNum = parseInt(c, 10);
+          const exactCollege = collegeDetails.find(col => parseInt(col.college_code, 10) === codeNum);
+          if (exactCollege && !matches.some(m => m.college_code === exactCollege.college_code)) {
+              matches.push(exactCollege);
+          }
+      }
+  }
+
+  // Exact Abbreviation Match
   const exactAbbreviations = {
     "ceg": 1, "act": 2, "mit": 4, "psg": 2006, "cit": 2007, 
     "ssn": 1315, "svce": 1219, "srm": 1422, "saveetha": 1216,
@@ -186,56 +180,39 @@ function findCollegeDetails(query) {
   for (const [key, val] of Object.entries(exactAbbreviations)) {
     if (q.includes(key)) {
       const found = collegeDetails.find(c => parseInt(c.college_code, 10) === val);
-      if (found && !matches.includes(found)) matches.push(found);
+      if (found && !matches.some(m => m.college_code === found.college_code)) matches.push(found);
     }
   }
 
+  // Name Match
   for (const item of collegeDetails) {
     if (matches.length >= 3) break; 
-    const itemCode = parseInt(item.college_code, 10);
-    if (code === itemCode && !matches.includes(item)) {
-        matches.push(item);
-        continue;
-    }
     const coreName = item.college_name.toLowerCase().split(',')[0].split('(')[0].trim();
-    if (coreName.length > 4 && q.includes(coreName) && !matches.includes(item)) {
+    if (coreName.length > 4 && q.includes(coreName) && !matches.some(m => m.college_code === item.college_code)) {
       matches.push(item);
     }
   }
-  return matches.length > 0 ? matches : null;
+  
+  return { data: matches.length > 0 ? matches : null };
 }
 
-// 6. API Route (Multi-Key Support & Full Constraints)
+// 6. API Route
 app.post('/api/chat', async (req, res) => {
   try {
     const rawMessage = req.body.message || "";
     
-    // LAYER 1: Spam Check
     if (!rawMessage.trim()) return res.json({ reply: "Please type a question or provide your marks so I can help you!" });
-    
-    // LAYER 2: Length Check
     if (rawMessage.length > 300) return res.json({ reply: "⚠️ **Message too long.** Please keep your questions brief (under 300 characters)." });
 
-    // LAYER 3: Sanitization
+    // 🛑 NEW: Intercept purely numerical inputs to prevent guessing
+    if (/^\s*\d+(\.\d+)?\s*$/.test(rawMessage)) {
+        return res.json({ 
+            reply: `You entered **${rawMessage.trim()}**. \n\nPlease clarify if this represents your **Cutoff Score**, a **Counselling Rank**, or a **4-digit College Code**? \n\n*(For example, reply "Code ${rawMessage.trim()}" or "My cutoff is ${rawMessage.trim()}")*` 
+        });
+    }
+
     const message = rawMessage.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const history = req.body.history || [];
-
-    // LAYER 4: Number Bounds Check
-    const explicitCutoffCheck = message.match(/(?:cutoff|mark|score)\s*(?:is\s*)?(\d{1,3}(?:\.\d+)?)/i);
-    if (explicitCutoffCheck) {
-        const checkVal = parseFloat(explicitCutoffCheck[1]);
-        if (checkVal < 77.5 || checkVal > 200) {
-            return res.json({ reply: "⚠️ **Invalid Cutoff.** TNEA engineering cutoffs must be strictly between 77.5 and 200." });
-        }
-    }
-
-    const explicitRankCheck = message.match(/(?:rank\s*is\s*|rank\s*|ranked\s*)(\d+)|(\d+)\s*(?:th\s*)?rank/i);
-    if (explicitRankCheck) {
-        const checkRank = parseInt(explicitRankCheck[1] || explicitRankCheck[2]);
-        if (checkRank <= 0 || checkRank > 250000) {
-            return res.json({ reply: "⚠️ **Invalid Rank.** TNEA General Ranks must be a valid positive number." });
-        }
-    }
 
     const userHistoryText = history.filter(h => h.role === 'user').map(h => h.content).join(" ");
     const fullContext = userHistoryText + " " + message;
@@ -246,55 +223,79 @@ app.post('/api/chat', async (req, res) => {
     const categoryMatch = fullContext.match(/\b(OC|BC|BCM|MBC|SC|SCA|ST)\b/i);
     const detectedCategory = categoryMatch ? categoryMatch[0].toUpperCase() : null;
 
-    if (explicitRankCheck) detectedRank = parseInt(explicitRankCheck[1] || explicitRankCheck[2]);
-    if (explicitCutoffCheck) detectedScore = parseFloat(explicitCutoffCheck[1]);
+    // 1. Explicit Rank Extraction
+    const explicitRankMatch = fullContext.match(/(?:rank\s*is\s*|rank\s*|ranked\s*)(\d+)|(\d+)\s*(?:th\s*)?rank/i);
+    if (explicitRankMatch) detectedRank = parseInt(explicitRankMatch[1] || explicitRankMatch[2]);
 
-    if (!detectedRank && !detectedScore) {
-      const rawNumbers = fullContext.match(/\b\d+(\.\d+)?\b/g);
-      if (rawNumbers) {
-        for (let numStr of rawNumbers.reverse()) {
-          const num = parseFloat(numStr);
-          if (num > 200 && num <= 250000) { detectedRank = parseInt(num); break; }
-          else if (num <= 200 && num >= 77.5) { detectedScore = num; break; }
+    // 2. Strict 3-Digit & Explicit Cutoff Logic
+    if (!detectedRank) {
+        const rawNumbers = fullContext.match(/\b\d{1,6}(?:\.\d+)?\b/g);
+        if (rawNumbers) {
+            for (let numStr of rawNumbers.reverse()) {
+                const num = parseFloat(numStr);
+                if (numStr.includes('.') || numStr.length === 3) {
+                    detectedScore = num;
+                    break;
+                } else if (num > 200) {
+                    detectedRank = num;
+                    break;
+                } else if (num >= 77.5 && num <= 200) {
+                    detectedScore = num;
+                    break;
+                }
+            }
         }
-      }
+    }
+
+    // 3. Invalid Cutoff / Rank Rejection
+    if (detectedScore !== null && (detectedScore < 77.5 || detectedScore > 200)) {
+        return res.json({ reply: "⚠️ **Invalid Cutoff.** Any 3-digit score or cutoff provided must be strictly between **77.5 and 200**. Please enter a valid cutoff score to proceed." });
+    }
+    if (detectedRank !== null && (detectedRank <= 0 || detectedRank > 250000)) {
+        return res.json({ reply: "⚠️ **Invalid Rank.** TNEA General Ranks must be a valid positive number." });
     }
 
     const prefs = extractPreferences(fullContext);
     let predictionContext = "";
     const disclaimerText = "\n\n--- \n*Disclaimer: These predictions are estimates based on previous year data. Official TNEA counseling seat allotment rules apply.*";
 
-    // Inject Specific College Facts if requested
-    const collegeInfoArray = findCollegeDetails(message);
-    if (collegeInfoArray) {
-      predictionContext += `\n\n[COLLEGE DETAILS CONTEXT]:\n` + JSON.stringify(collegeInfoArray, null, 2) + `\nAnswer the user's specific query utilizing the codes and facts above. Do not guess.`;
+    // 4. Add College Details Context reliably
+    const collegeLookup = findCollegeDetails(message);
+    if (collegeLookup.data) {
+        predictionContext += `\n\n[COLLEGE DETAILS CONTEXT (Source: colleges.json)]:\n` + JSON.stringify(collegeLookup.data, null, 2) + `\nAnswer the user's specific query utilizing ONLY the details above. Do not guess.`;
     }
 
     const hasNumber = (detectedRank !== null || detectedScore !== null);
     const hasCategory = detectedCategory !== null;
     const isAskingForColleges = message.toLowerCase().match(/(recommend|suggest|predict|what college|which college|get into|list)/);
 
-    // Predict Colleges based on data
-    if (hasNumber && hasCategory) {
-      if (detectedRank) {
-        const recommendations = getRecommendationsByRank(detectedRank, detectedCategory, prefs);
-        predictionContext += recommendations.length > 0 
-          ? `\n\n[DATABASE MATCHES FOR RANK ${detectedRank}, CATEGORY ${detectedCategory}]:\n` + JSON.stringify(recommendations, null, 2) + `\n\nFormat these into the recommended college table. ALWAYS include the 'code'. AFTER the table, print this verbatim: ${disclaimerText}`
-          : `\n\n[NO EXACT MATCHES FOUND IN DATABASE] State that no exact college matches were found.`;
-      } else if (detectedScore) {
-        const recommendations = getRecommendationsByCutoff(detectedScore, detectedCategory, prefs);
-        predictionContext += recommendations.length > 0 
-          ? `\n\n[DATABASE MATCHES FOR CUTOFF ${detectedScore}, CATEGORY ${detectedCategory}]:\n` + JSON.stringify(recommendations, null, 2) + `\n\nFormat these into the recommended college table. ALWAYS include the 'code'. AFTER the table, print this verbatim: ${disclaimerText}`
-          : `\n\n[NO EXACT MATCHES FOUND IN DATABASE] State that no exact college matches were found.`;
-      }
-    } else if (isAskingForColleges && (!hasNumber || !hasCategory)) {
-      const missingItems = [];
-      if (!hasNumber) missingItems.push("Cutoff Mark (or Rank)");
-      if (!hasCategory) missingItems.push("Community Category (e.g., OC, BC, MBC)");
-      
-      predictionContext += `\n\n[SYSTEM NOTIFICATION]: The user wants predictions but is missing data.
-      CRITICAL INSTRUCTION: You MUST politely ask the user to provide their ${missingItems.join(" AND ")}. DO NOT generate any colleges.`;
-    } 
+    // 5. Predict Colleges Logic
+    if (hasNumber && isAskingForColleges) {
+        const missingItems = [];
+        if (!hasCategory) missingItems.push("Community Category (e.g., OC, BC, MBC)");
+        if (prefs.branches.length === 0) missingItems.push("Preferred Department/Branch (e.g., CSE, IT, ECE)");
+
+        if (missingItems.length > 0) {
+            predictionContext += `\n\n[SYSTEM NOTIFICATION]: The user provided a valid cutoff/rank but is missing: ${missingItems.join(" AND ")}.
+            CRITICAL INSTRUCTION: You MUST politely ask the user to provide these missing details before you can recommend colleges. DO NOT generate any recommended colleges table yet.`;
+        } else {
+            const regionText = prefs.cities.length > 0 ? `in ${prefs.cities.join(", ")}` : "across all regions in Tamil Nadu";
+
+            if (detectedRank) {
+              const recommendations = getRecommendationsByRank(detectedRank, detectedCategory, prefs);
+              predictionContext += recommendations.length > 0 
+                ? `\n\n[DATABASE MATCHES FOR RANK ${detectedRank}, CATEGORY ${detectedCategory} ${regionText.toUpperCase()}]:\n` + JSON.stringify(recommendations, null, 2) + `\n\nFormat these into the recommended college table. Mention in your response that you searched ${regionText}. ALWAYS include the 'code'. AFTER the table, print this verbatim: ${disclaimerText}`
+                : `\n\n[NO EXACT MATCHES FOUND IN DATABASE] State that no exact college matches were found for this department ${regionText}.`;
+            } else if (detectedScore) {
+              const recommendations = getRecommendationsByCutoff(detectedScore, detectedCategory, prefs);
+              predictionContext += recommendations.length > 0 
+                ? `\n\n[DATABASE MATCHES FOR CUTOFF ${detectedScore}, CATEGORY ${detectedCategory} ${regionText.toUpperCase()}]:\n` + JSON.stringify(recommendations, null, 2) + `\n\nFormat these into the recommended college table. Mention in your response that you searched ${regionText}. ALWAYS include the 'code'. AFTER the table, print this verbatim: ${disclaimerText}`
+                : `\n\n[NO EXACT MATCHES FOUND IN DATABASE] State that no exact college matches were found for this department ${regionText}.`;
+            }
+        }
+    } else if (isAskingForColleges && !hasNumber) {
+        predictionContext += `\n\n[SYSTEM NOTIFICATION]: The user wants predictions but did not provide a cutoff or rank. Ask them to provide their Cutoff/Rank, Category, and preferred department.`;
+    }
 
     const messages = [
       { role: "system", content: TNEA_SYSTEM_PROMPT + predictionContext },
@@ -302,7 +303,6 @@ app.post('/api/chat', async (req, res) => {
       { role: "user", content: message }
     ];
 
-    // Auto-Rotate through provided Groq API Keys
     const GROQ_KEYS = [
       process.env.GROQ_API_KEY,
       process.env.GROQ_KEY_2,
@@ -316,7 +316,7 @@ app.post('/api/chat', async (req, res) => {
         try {
             const currentGroq = new Groq({ apiKey: GROQ_KEYS[i] });
             const completion = await currentGroq.chat.completions.create({
-                model: "llama-3.1-8b-instant",
+                model: "llama-3.3-70b-versatile",
                 messages: messages,
                 temperature: 0.3,
             });
@@ -347,4 +347,4 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🛡️ Master TNEA Backend running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`🛡️ Versatile TNEA Backend running on http://localhost:${PORT}`));
