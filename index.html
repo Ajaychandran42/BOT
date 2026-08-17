@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TNEA GPT | Admissions Assistant</title>
     
-    <!-- ADDED LOGO AS WEBSITE FAVICON -->
     <link rel="icon" type="image/jpeg" href="logo.jpeg">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,7 +13,6 @@
     
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <!-- ADDED HTML2PDF FOR DOWNLOADING CHAT -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <link rel="stylesheet" href="style.css">
@@ -23,6 +21,7 @@
 
     <div class="app-root theme-dark" id="appRoot">
         <div class="app-container">
+            <div class="mobile-overlay" id="mobileOverlay"></div>
             
             <!-- FLUID MAC-STYLE SIDEBAR -->
             <aside class="sidebar" id="sidebar">
@@ -121,7 +120,7 @@
                         </div>
                     </div>
 
-                    <!-- Composer / Input (Removed Chips) -->
+                    <!-- Composer / Input -->
                     <div class="composer">
                         <div class="input-card">
                             <textarea id="chatInput" rows="1" placeholder="Type your marks, rank, category, or preferred branch…"></textarea>
@@ -143,7 +142,6 @@
 
                 <!-- VIEW 2: CUTOFF CALCULATOR PAGE -->
                 <section class="page-view" id="calculatorView">
-                    <!-- Calculator HTML Remains the Same -->
                     <div class="calc-page-container">
                         <div class="calc-page-header">
                             <div class="calc-badge">TNEA Standard Formula</div>
