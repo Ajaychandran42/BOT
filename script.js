@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const appRoot = document.getElementById("appRoot");
   const sidebar = document.getElementById("sidebar");
+  const mobileOverlay = document.getElementById("mobileOverlay");
   
   // Navigation View Switchers
   const chatView = document.getElementById("chatView");
@@ -41,26 +42,35 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // --- 2. UNIVERSAL SIDEBAR TOGGLE ---
+  // --- 2. ROBUST SIDEBAR TOGGLE ---
   const menuToggleBtn = document.getElementById("menuToggleBtn");
   const closeSidebarBtn = document.getElementById("closeSidebarBtn");
 
   function toggleSidebar() {
-    if (window.innerWidth <= 768) sidebar.classList.toggle("mobile-open");
-    else sidebar.classList.toggle("collapsed");
+    if (window.innerWidth <= 768) {
+        sidebar.classList.toggle("mobile-open");
+        mobileOverlay.classList.toggle("active");
+    } else {
+        sidebar.classList.toggle("collapsed");
+    }
   }
 
   function closeSidebar() {
-    if (window.innerWidth <= 768) sidebar.classList.remove("mobile-open");
-    else sidebar.classList.add("collapsed");
+    if (window.innerWidth <= 768) {
+        sidebar.classList.remove("mobile-open");
+        mobileOverlay.classList.remove("active");
+    } else {
+        sidebar.classList.add("collapsed");
+    }
   }
 
-  menuToggleBtn.addEventListener("click", toggleSidebar);
-  closeSidebarBtn.addEventListener("click", closeSidebar);
+  if (menuToggleBtn) menuToggleBtn.addEventListener("click", toggleSidebar);
+  if (closeSidebarBtn) closeSidebarBtn.addEventListener("click", closeSidebar);
+  if (mobileOverlay) mobileOverlay.addEventListener("click", closeSidebar);
 
   // --- 3. HEADER QUICK ACTIONS ---
   const headerCalcBtn = document.getElementById("headerCalcBtn");
-  headerCalcBtn.addEventListener("click", () => switchView("calc"));
+  if (headerCalcBtn) headerCalcBtn.addEventListener("click", () => switchView("calc"));
 
   function switchView(target) {
     if (target === "calc") {
@@ -77,63 +87,70 @@ document.addEventListener("DOMContentLoaded", () => {
     if (window.innerWidth <= 768) closeSidebar();
   }
 
-  navCalcPageBtn.addEventListener("click", () => switchView("calc"));
-  navChatBtn.addEventListener("click", () => switchView("chat"));
-  returnToChatBtn.addEventListener("click", () => switchView("chat"));
+  if (navCalcPageBtn) navCalcPageBtn.addEventListener("click", () => switchView("calc"));
+  if (navChatBtn) navChatBtn.addEventListener("click", () => switchView("chat"));
+  if (returnToChatBtn) returnToChatBtn.addEventListener("click", () => switchView("chat"));
 
   // --- 4. 3-DOTS HEADER MENU & SHARE/PDF ---
   const headerMenuBtn = document.getElementById("headerMenuBtn");
   const headerDropdown = document.getElementById("headerDropdown");
   
-  headerMenuBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      headerDropdown.classList.toggle("active");
-  });
-  
-  document.addEventListener("click", (e) => {
-      if (!headerDropdown.contains(e.target) && e.target !== headerMenuBtn) {
-          headerDropdown.classList.remove("active");
-      }
-  });
+  if (headerMenuBtn && headerDropdown) {
+      headerMenuBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          headerDropdown.classList.toggle("active");
+      });
+      
+      document.addEventListener("click", (e) => {
+          if (!headerDropdown.contains(e.target) && e.target !== headerMenuBtn) {
+              headerDropdown.classList.remove("active");
+          }
+      });
+  }
 
   // Share Button Logic
-  document.getElementById("shareBtn").addEventListener("click", async () => {
-      headerDropdown.classList.remove("active");
-      if (navigator.share) {
-          try {
-              await navigator.share({
-                  title: 'TNEA GPT 2026',
-                  text: 'Check out this TNEA Counseling Assistant!',
-                  url: window.location.href
-              });
-          } catch (err) { console.log('Share canceled', err); }
-      } else {
-          navigator.clipboard.writeText(window.location.href);
-          alert("Link copied to clipboard!");
-      }
-  });
+  const shareBtn = document.getElementById("shareBtn");
+  if (shareBtn) {
+      shareBtn.addEventListener("click", async () => {
+          headerDropdown.classList.remove("active");
+          if (navigator.share) {
+              try {
+                  await navigator.share({
+                      title: 'TNEA GPT 2026',
+                      text: 'Check out this TNEA Counseling Assistant!',
+                      url: window.location.href
+                  });
+              } catch (err) { console.log('Share canceled', err); }
+          } else {
+              navigator.clipboard.writeText(window.location.href);
+              alert("Link copied to clipboard!");
+          }
+      });
+  }
 
   // Download PDF Logic
-  document.getElementById("downloadPdfBtn").addEventListener("click", () => {
-      headerDropdown.classList.remove("active");
-      const element = document.getElementById('messagesContainer');
-      
-      // Temporarily hide typing indicator and adjust CSS for full capture
-      document.getElementById('typingIndicator').style.display = 'none';
-      element.classList.add('pdf-export-mode');
-      
-      const opt = {
-          margin:       10,
-          filename:     'TNEA_Chat_History.pdf',
-          image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  { scale: 2, useCORS: true, windowWidth: element.scrollWidth },
-          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-      
-      html2pdf().set(opt).from(element).save().then(() => {
-          element.classList.remove('pdf-export-mode'); // Revert styles
+  const downloadPdfBtn = document.getElementById("downloadPdfBtn");
+  if (downloadPdfBtn) {
+      downloadPdfBtn.addEventListener("click", () => {
+          headerDropdown.classList.remove("active");
+          const element = document.getElementById('messagesContainer');
+          
+          document.getElementById('typingIndicator').style.display = 'none';
+          element.classList.add('pdf-export-mode');
+          
+          const opt = {
+              margin:       10,
+              filename:     'TNEA_Chat_History.pdf',
+              image:        { type: 'jpeg', quality: 0.98 },
+              html2canvas:  { scale: 2, useCORS: true, windowWidth: element.scrollWidth },
+              jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+          };
+          
+          html2pdf().set(opt).from(element).save().then(() => {
+              element.classList.remove('pdf-export-mode'); 
+          });
       });
-  });
+  }
 
   // --- 5. FLOATING POPOVER SETTINGS MENU ---
   const settingsPopover = document.getElementById("settingsPopover");
@@ -160,22 +177,25 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  navSettingsBtn.addEventListener("click", openSettingsMenu);
-  headerSettingsBtn.addEventListener("click", openSettingsMenu);
+  if (navSettingsBtn) navSettingsBtn.addEventListener("click", openSettingsMenu);
+  if (headerSettingsBtn) headerSettingsBtn.addEventListener("click", openSettingsMenu);
 
-  themeMenuTrigger.addEventListener("click", (e) => {
-    e.stopPropagation(); 
-    themeFlyout.classList.toggle("active");
-  });
+  if (themeMenuTrigger) {
+      themeMenuTrigger.addEventListener("click", (e) => {
+        e.stopPropagation(); 
+        themeFlyout.classList.toggle("active");
+      });
+  }
 
   document.addEventListener("click", (e) => {
-    const isClickInside = settingsPopover.contains(e.target) || 
-                          e.target.closest('#navSettingsBtn') || 
-                          e.target.closest('#headerSettingsBtn');
-    
-    if (!isClickInside && settingsPopover.classList.contains("active")) {
-      settingsPopover.classList.remove("active");
-      themeFlyout.classList.remove("active");
+    if (settingsPopover && settingsPopover.classList.contains("active")) {
+        const isClickInside = settingsPopover.contains(e.target) || 
+                              (navSettingsBtn && navSettingsBtn.contains(e.target)) || 
+                              (headerSettingsBtn && headerSettingsBtn.contains(e.target));
+        if (!isClickInside) {
+          settingsPopover.classList.remove("active");
+          themeFlyout.classList.remove("active");
+        }
     }
   });
 
@@ -220,12 +240,16 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // --- 7. CUTOFF CALCULATOR REALTIME ENGINE ---
-  const [calcMath, calcPhy, calcChem] = [document.getElementById("calcMath"), document.getElementById("calcPhy"), document.getElementById("calcChem")];
+  const calcMath = document.getElementById("calcMath");
+  const calcPhy = document.getElementById("calcPhy");
+  const calcChem = document.getElementById("calcChem");
   const fullCalcDisplay = document.getElementById("fullCalcDisplay");
   const calcProgressBar = document.getElementById("calcProgressBar");
   const useCutoffInChatBtn = document.getElementById("useCutoffInChatBtn");
 
   function runCalculator() {
+    if(!calcMath || !calcPhy || !calcChem) return 0;
+      
     const m = Math.min(Math.max(parseFloat(calcMath.value) || 0, 0), 100);
     const p = Math.min(Math.max(parseFloat(calcPhy.value) || 0, 0), 100);
     const c = Math.min(Math.max(parseFloat(calcChem.value) || 0, 0), 100);
@@ -240,26 +264,33 @@ document.addEventListener("DOMContentLoaded", () => {
     return totalCutoff;
   }
 
-  [calcMath, calcPhy, calcChem].forEach(input => input.addEventListener("input", runCalculator));
+  if(calcMath) calcMath.addEventListener("input", runCalculator);
+  if(calcPhy) calcPhy.addEventListener("input", runCalculator);
+  if(calcChem) calcChem.addEventListener("input", runCalculator);
 
-  useCutoffInChatBtn.addEventListener("click", () => {
-    const finalScore = runCalculator();
-    if (finalScore > 0) {
-      switchView("chat");
-      inputField.value = `My cutoff is ${finalScore}. Recommend eligible colleges.`;
-      handleSend();
-    }
-  });
+  if (useCutoffInChatBtn) {
+      useCutoffInChatBtn.addEventListener("click", () => {
+        const finalScore = runCalculator();
+        if (finalScore > 0) {
+          switchView("chat");
+          inputField.value = `My cutoff is ${finalScore}. Recommend eligible colleges.`;
+          handleSend();
+        }
+      });
+  }
 
   // --- 8. CLEAR / NEW CHAT ---
-  document.getElementById("newChatBtn").addEventListener("click", () => {
-    history = [];
-    localStorage.removeItem("tnea_chat_history");
-    renderHistory();
-    switchView("chat");
-    if (window.innerWidth <= 768) closeSidebar();
-    settingsPopover.classList.remove('active');
-  });
+  const newChatBtn = document.getElementById("newChatBtn");
+  if (newChatBtn) {
+      newChatBtn.addEventListener("click", () => {
+        history = [];
+        localStorage.removeItem("tnea_chat_history");
+        renderHistory();
+        switchView("chat");
+        if (window.innerWidth <= 768) closeSidebar();
+        settingsPopover.classList.remove('active');
+      });
+  }
 
   // --- 9. CHAT LOGIC & UI APPENDING ---
   function scrollToBottom() { messagesContainer.scrollTop = messagesContainer.scrollHeight; }
@@ -281,7 +312,8 @@ document.addEventListener("DOMContentLoaded", () => {
     bubbleDiv.className = "bubble";
 
     if (sender === "bot") {
-      bubbleDiv.innerHTML = marked.parse(text, { renderer });
+      let htmlString = marked.parse(text, { renderer });
+      bubbleDiv.innerHTML = htmlString;
     } else {
       bubbleDiv.textContent = text;
     }
@@ -295,20 +327,22 @@ document.addEventListener("DOMContentLoaded", () => {
     scrollToBottom();
   }
 
-  inputField.addEventListener("input", function() {
-    this.style.height = "auto";
-    this.style.height = this.scrollHeight + "px";
-  });
+  if (inputField) {
+      inputField.addEventListener("input", function() {
+        this.style.height = "auto";
+        this.style.height = this.scrollHeight + "px";
+      });
 
-  inputField.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
-  });
+      inputField.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+      });
+  }
 
   // --- 10. FULLY WORKING VOICE RECOGNITION (AUTO-SEND) ---
   const micBtn = document.getElementById("micBtn");
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-  if (SpeechRecognition) {
+  if (SpeechRecognition && micBtn) {
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
@@ -323,7 +357,7 @@ document.addEventListener("DOMContentLoaded", () => {
       isListening = true;
       micBtn.classList.add("listening");
       inputField.placeholder = "Listening...";
-      inputField.value = ""; // Clear for new voice input
+      inputField.value = ""; 
     };
 
     recognition.onresult = (e) => {
@@ -343,13 +377,12 @@ document.addEventListener("DOMContentLoaded", () => {
       micBtn.classList.remove("listening");
       inputField.placeholder = "Type your marks, rank, category, or preferred branch…";
       
-      // Auto send if there's text
       if(inputField.value.trim().length > 0) {
           handleSend();
       }
     };
-  } else {
-    micBtn.style.display = "none"; // Hide if browser doesn't support it
+  } else if (micBtn) {
+    micBtn.style.display = "none";
   }
 
   // --- 11. SEND REQUEST TO SERVER ---
@@ -393,6 +426,5 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // INITIALIZE UI
   renderHistory();
 });
