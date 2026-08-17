@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>TNEA GPT | Admissions Assistant</title>
     
     <link rel="icon" type="image/jpeg" href="logo.jpeg">
@@ -23,7 +23,7 @@
         <div class="app-container">
             <div class="mobile-overlay" id="mobileOverlay"></div>
             
-            <!-- FLUID MAC-STYLE SIDEBAR -->
+            <!-- FLUID SIDEBAR -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-top">
                     <div class="sidebar-brand">
@@ -113,30 +113,34 @@
                     </header>
 
                     <!-- Chat Messages Stream -->
-                    <div class="messages" id="messagesContainer">
-                        <div class="typing-row" id="typingIndicator" style="display: none;">
-                            <div class="avatar bot"><img src="logo.jpeg" alt="Bot" style="width:100%; border-radius:8px;"></div>
-                            <div class="typing-dots"><span></span><span></span><span></span></div>
+                    <div class="messages-wrapper">
+                        <div class="messages" id="messagesContainer">
+                            <div class="typing-row" id="typingIndicator" style="display: none;">
+                                <div class="avatar bot"><img src="logo.jpeg" alt="Bot"></div>
+                                <div class="typing-dots"><span></span><span></span><span></span></div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Composer / Input -->
-                    <div class="composer">
-                        <div class="input-card">
-                            <textarea id="chatInput" rows="1" placeholder="Type your marks, rank, category, or preferred branch…"></textarea>
-                            
-                            <div class="input-actions">
-                                <button class="tool-btn mic-btn" id="micBtn" title="Voice Input">
-                                    <i data-lucide="mic" id="micIcon"></i>
-                                </button>
-                                <button class="send-btn" id="sendBtn" onclick="handleSend()" title="Send Message">
-                                    <i data-lucide="arrow-up"></i>
-                                </button>
+                    <!-- Floating Composer / Input -->
+                    <div class="composer-container">
+                        <div class="composer">
+                            <div class="input-card glass-panel">
+                                <textarea id="chatInput" rows="1" placeholder="Type marks, rank, or preferred branch…"></textarea>
+                                
+                                <div class="input-actions">
+                                    <button class="tool-btn mic-btn" id="micBtn" title="Voice Input">
+                                        <i data-lucide="mic" id="micIcon"></i>
+                                    </button>
+                                    <button class="send-btn" id="sendBtn" onclick="handleSend()" title="Send Message">
+                                        <i data-lucide="arrow-up"></i>
+                                    </button>
+                                </div>
                             </div>
+                            <p class="disclaimer">
+                                <i data-lucide="shield-check" class="disclaimer-icon"></i> Official TNEA 2026 Guidelines Applied.
+                            </p>
                         </div>
-                        <p class="disclaimer">
-                            <i data-lucide="shield-check" class="disclaimer-icon"></i> Estimates grounded on official TNEA cutoff records.
-                        </p>
                     </div>
                 </main>
 
@@ -145,10 +149,10 @@
                     <div class="calc-page-container">
                         <div class="calc-page-header">
                             <div class="calc-badge">TNEA Standard Formula</div>
-                            <h2>Engineering Cutoff Calculator</h2>
-                            <p>Calculate your composite score out of <strong>200</strong> based on 12th Standard HSC marks.</p>
+                            <h2>Cutoff Calculator</h2>
+                            <p>Calculate your composite score out of <strong>200</strong>.</p>
                         </div>
-                        <div class="calc-hero-card">
+                        <div class="calc-hero-card glass-panel">
                             <div class="calc-score-wrap">
                                 <span class="calc-score-label">Your Aggregate Cutoff</span>
                                 <div class="calc-score-number" id="fullCalcDisplay">000.00</div>
@@ -156,48 +160,42 @@
                                     <div class="progress-bar-fill" id="calcProgressBar"></div>
                                 </div>
                             </div>
-                            <div class="calc-formula-tag">
-                                <code>Maths (100) + [Physics (100) ÷ 2] + [Chemistry (100) ÷ 2] = 200</code>
-                            </div>
                         </div>
                         <div class="subject-grid">
                             <div class="subject-card math-card">
                                 <div class="subject-header">
                                     <div class="subject-icon math-icon"><i data-lucide="superscript"></i></div>
-                                    <div><h4>Mathematics</h4><span class="weightage">Max 100 Marks (100%)</span></div>
+                                    <div><h4>Mathematics</h4><span class="weightage">Max 100</span></div>
                                 </div>
                                 <div class="subject-input-group">
-                                    <input type="number" id="calcMath" min="0" max="100" placeholder="e.g. 96" value="">
-                                    <span class="unit">/ 100</span>
+                                    <input type="number" id="calcMath" min="0" max="100" placeholder="0" value="">
                                 </div>
-                                <div class="contribution">Contributes: <strong id="mathContrib">0.00</strong></div>
+                                <div class="contribution">Contrib: <strong id="mathContrib">0.00</strong></div>
                             </div>
                             <div class="subject-card phy-card">
                                 <div class="subject-header">
                                     <div class="subject-icon phy-icon"><i data-lucide="atom"></i></div>
-                                    <div><h4>Physics</h4><span class="weightage">Max 100 Marks (50%)</span></div>
+                                    <div><h4>Physics</h4><span class="weightage">Max 100</span></div>
                                 </div>
                                 <div class="subject-input-group">
-                                    <input type="number" id="calcPhy" min="0" max="100" placeholder="e.g. 92" value="">
-                                    <span class="unit">/ 100</span>
+                                    <input type="number" id="calcPhy" min="0" max="100" placeholder="0" value="">
                                 </div>
-                                <div class="contribution">Contributes: <strong id="phyContrib">0.00</strong></div>
+                                <div class="contribution">Contrib: <strong id="phyContrib">0.00</strong></div>
                             </div>
                             <div class="subject-card chem-card">
                                 <div class="subject-header">
                                     <div class="subject-icon chem-icon"><i data-lucide="flask-conical"></i></div>
-                                    <div><h4>Chemistry</h4><span class="weightage">Max 100 Marks (50%)</span></div>
+                                    <div><h4>Chemistry</h4><span class="weightage">Max 100</span></div>
                                 </div>
                                 <div class="subject-input-group">
-                                    <input type="number" id="calcChem" min="0" max="100" placeholder="e.g. 94" value="">
-                                    <span class="unit">/ 100</span>
+                                    <input type="number" id="calcChem" min="0" max="100" placeholder="0" value="">
                                 </div>
-                                <div class="contribution">Contributes: <strong id="chemContrib">0.00</strong></div>
+                                <div class="contribution">Contrib: <strong id="chemContrib">0.00</strong></div>
                             </div>
                         </div>
                         <div class="calc-actions">
                             <button class="btn-primary-large" id="useCutoffInChatBtn">
-                                <span>Explore Eligible Colleges with this Cutoff</span>
+                                <span>Find Eligible Colleges</span>
                                 <i data-lucide="arrow-right"></i>
                             </button>
                             <button class="btn-subtle" id="returnToChatBtn">Back to Chat</button>
@@ -208,8 +206,8 @@
         </div>
     </div>
 
-    <!-- FLOATING GEMINI-STYLE SETTINGS POPOVER MENU -->
-    <div class="gemini-popover" id="settingsPopover">
+    <!-- FLOATING SETTINGS POPOVER MENU -->
+    <div class="gemini-popover glass-panel" id="settingsPopover">
         <div class="popover-section">
             <button class="popover-item" onclick="document.getElementById('newChatBtn').click();"><i data-lucide="trash-2"></i> Clear Chat History</button>
             <button class="popover-item"><i data-lucide="database"></i> Counseling DB 2026</button>
@@ -219,7 +217,7 @@
             </button>
         </div>
 
-        <div class="theme-flyout" id="themeFlyout">
+        <div class="theme-flyout glass-panel" id="themeFlyout">
             <button class="popover-item theme-select" data-theme="system"><i style="width:18px; display:inline-block"></i> System</button>
             <button class="popover-item theme-select" data-theme="light"><i style="width:18px; display:inline-block"></i> Light</button>
             <button class="popover-item theme-select" data-theme="dark"><i style="width:18px; display:inline-block"></i> Dark</button>
